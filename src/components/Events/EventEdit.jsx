@@ -221,7 +221,7 @@ const EventEdit = () => {
 
       // Add image file if selected
       if (selectedFile) {
-        formData.append("image", selectedFile);
+        formData.append("event_image", selectedFile);
       }
 
       const token = localStorage.getItem("token");

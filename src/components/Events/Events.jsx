@@ -49,6 +49,7 @@ import {
   Image as ImageIcon,
   AttachMoney as MoneyIcon,
   Engineering as EngineerIcon,
+  Event as EventIcon,
 } from "@mui/icons-material";
 import { Tabs, Tab } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -250,8 +251,7 @@ const Events = () => {
   };
 
   const handleViewEvent = (event) => {
-    setSelectedEvent(event);
-    setOpenViewDialog(true);
+    navigate(`/events/${event.id}`);
   };
 
   const handleEditEvent = (event) => {
@@ -825,7 +825,7 @@ const Events = () => {
                 zIndex: 0,
               }}
             />
-            <Event sx={{ position: "relative", zIndex: 1, fontSize: 28 }} />
+            <EventIcon sx={{ position: "relative", zIndex: 1, fontSize: 28 }} />
             <Box sx={{ position: "relative", zIndex: 1 }}>
               <Typography
                 variant="h5"

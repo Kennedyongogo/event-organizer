@@ -174,10 +174,16 @@ const EventCreate = () => {
 
       // Add image files
       selectedFiles.forEach((file) => {
-        formData.append("image", file);
+        formData.append("event_image", file);
       });
 
       const token = localStorage.getItem("token");
+      const userRole = localStorage.getItem("userRole");
+
+      console.log("Token:", token ? "Present" : "Missing");
+      console.log("User Role:", userRole);
+      console.log("Form Data:", Object.fromEntries(formData.entries()));
+
       const response = await fetch("/api/events", {
         method: "POST",
         headers: {
@@ -185,6 +191,12 @@ const EventCreate = () => {
         },
         body: formData,
       });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Response error:", errorText);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
 
       const result = await response.json();
 

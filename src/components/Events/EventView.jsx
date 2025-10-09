@@ -25,6 +25,13 @@ import {
   AttachMoney as MoneyIcon,
   Category as CategoryIcon,
   ConfirmationNumber as TicketIcon,
+  Business as BusinessIcon,
+  Person as PersonIcon,
+  Phone as PhoneIcon,
+  Email as EmailIcon,
+  CalendarMonth as CalendarMonthIcon,
+  Update as UpdateIcon,
+  Image as ImageIcon,
 } from "@mui/icons-material";
 
 const EventView = () => {
@@ -68,16 +75,22 @@ const EventView = () => {
         },
       });
 
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("EventView - Response error:", errorText);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
       const result = await response.json();
 
-      if (response.ok && result.success) {
+      if (result.success) {
         setEvent(result.data);
       } else {
         setError(result.message || "Failed to fetch event details");
       }
     } catch (err) {
-      setError("Failed to fetch event details");
-      console.error("Error fetching event:", err);
+      setError(`Failed to fetch event details: ${err.message}`);
+      console.error("EventView - Error fetching event:", err);
     } finally {
       setLoading(false);
     }
@@ -328,6 +341,83 @@ const EventView = () => {
               </Grid>
             )}
 
+            {/* Event Image */}
+            {event.image_url && (
+              <Grid item xs={12} sx={{ width: "100%" }}>
+                <Card
+                  sx={{
+                    backgroundColor: "white",
+                    boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
+                    border: "1px solid #e0e0e0",
+                    width: "100%",
+                    maxWidth: "none",
+                  }}
+                >
+                  <CardContent>
+                    <Box display="flex" alignItems="center" gap={1} mb={3}>
+                      <ImageIcon sx={{ color: "#667eea" }} />
+                      <Typography variant="h5" sx={{ color: "#333" }}>
+                        Event Image
+                      </Typography>
+                    </Box>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        width: "100%",
+                        height: "500px",
+                        overflow: "hidden",
+                        borderRadius: 3,
+                        backgroundColor: "#f8f9fa",
+                        boxShadow: "inset 0 2px 8px rgba(0,0,0,0.1)",
+                        position: "relative",
+                      }}
+                    >
+                      <img
+                        src={`http://localhost:4000${event.image_url}`}
+                        alt={event.event_name}
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                          borderRadius: "12px",
+                          transition: "transform 0.3s ease",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.transform = "scale(1.02)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.transform = "scale(1)";
+                        }}
+                        onError={(e) => {
+                          e.target.style.display = "none";
+                          e.target.nextSibling.style.display = "flex";
+                        }}
+                      />
+                      <Box
+                        sx={{
+                          display: "none",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          height: "100%",
+                          color: "#999",
+                          backgroundColor: "#f8f9fa",
+                          borderRadius: "12px",
+                        }}
+                      >
+                        <ImageIcon sx={{ fontSize: 64, mb: 2, opacity: 0.5 }} />
+                        <Typography variant="h6" sx={{ opacity: 0.7 }}>
+                          Event Image Not Available
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+            )}
+
             {/* Basic Information */}
             <Grid item xs={12} sx={{ width: "100%" }}>
               <Card
@@ -433,12 +523,14 @@ const EventView = () => {
 
             {/* Description */}
             {event.description && (
-              <Grid item xs={12}>
+              <Grid item xs={12} sx={{ width: "100%" }}>
                 <Card
                   sx={{
                     backgroundColor: "white",
                     boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
                     border: "1px solid #e0e0e0",
+                    width: "100%",
+                    maxWidth: "none",
                   }}
                 >
                   <CardContent>
@@ -455,6 +547,159 @@ const EventView = () => {
                 </Card>
               </Grid>
             )}
+
+            {/* Organizer Information */}
+            {event.organizer && (
+              <Grid item xs={12} sx={{ width: "100%" }}>
+                <Card
+                  sx={{
+                    backgroundColor: "white",
+                    boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
+                    border: "1px solid #e0e0e0",
+                    width: "100%",
+                    maxWidth: "none",
+                  }}
+                >
+                  <CardContent>
+                    <Box display="flex" alignItems="center" gap={1} mb={3}>
+                      <BusinessIcon sx={{ color: "#ff6b6b" }} />
+                      <Typography variant="h6" sx={{ color: "#333" }}>
+                        Organizer Information
+                      </Typography>
+                    </Box>
+                    <Stack spacing={3}>
+                      <Box display="flex" alignItems="center" gap={2}>
+                        <BusinessIcon sx={{ color: "#667eea", fontSize: 20 }} />
+                        <Box>
+                          <Typography variant="body2" sx={{ color: "#666" }}>
+                            Organization Name
+                          </Typography>
+                          <Typography
+                            variant="body1"
+                            sx={{ color: "#333", fontWeight: 500 }}
+                          >
+                            {event.organizer.organization_name}
+                          </Typography>
+                        </Box>
+                      </Box>
+                      <Box display="flex" alignItems="center" gap={2}>
+                        <PersonIcon sx={{ color: "#667eea", fontSize: 20 }} />
+                        <Box>
+                          <Typography variant="body2" sx={{ color: "#666" }}>
+                            Contact Person
+                          </Typography>
+                          <Typography
+                            variant="body1"
+                            sx={{ color: "#333", fontWeight: 500 }}
+                          >
+                            {event.organizer.contact_person}
+                          </Typography>
+                        </Box>
+                      </Box>
+                      <Box display="flex" alignItems="center" gap={2}>
+                        <PhoneIcon sx={{ color: "#667eea", fontSize: 20 }} />
+                        <Box>
+                          <Typography variant="body2" sx={{ color: "#666" }}>
+                            Phone Number
+                          </Typography>
+                          <Typography
+                            variant="body1"
+                            sx={{ color: "#333", fontWeight: 500 }}
+                          >
+                            {event.organizer.phone_number}
+                          </Typography>
+                        </Box>
+                      </Box>
+                      <Box display="flex" alignItems="center" gap={2}>
+                        <EmailIcon sx={{ color: "#667eea", fontSize: 20 }} />
+                        <Box>
+                          <Typography variant="body2" sx={{ color: "#666" }}>
+                            Email
+                          </Typography>
+                          <Typography
+                            variant="body1"
+                            sx={{ color: "#333", fontWeight: 500 }}
+                          >
+                            {event.organizer.email}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Stack>
+                  </CardContent>
+                </Card>
+              </Grid>
+            )}
+
+            {/* Event Metadata */}
+            <Grid item xs={12} sx={{ width: "100%" }}>
+              <Card
+                sx={{
+                  backgroundColor: "white",
+                  boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
+                  border: "1px solid #e0e0e0",
+                  width: "100%",
+                  maxWidth: "none",
+                }}
+              >
+                <CardContent>
+                  <Box display="flex" alignItems="center" gap={1} mb={3}>
+                    <UpdateIcon sx={{ color: "#28a745" }} />
+                    <Typography variant="h6" sx={{ color: "#333" }}>
+                      Event Details
+                    </Typography>
+                  </Box>
+                  <Stack spacing={3}>
+                    <Box display="flex" alignItems="center" gap={2}>
+                      <BusinessIcon sx={{ color: "#28a745", fontSize: 20 }} />
+                      <Box>
+                        <Typography variant="body2" sx={{ color: "#666" }}>
+                          Organizer
+                        </Typography>
+                        <Typography
+                          variant="body1"
+                          sx={{
+                            color: "#333",
+                            fontWeight: 500,
+                          }}
+                        >
+                          {event.organizer?.organization_name || "N/A"}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Box display="flex" alignItems="center" gap={2}>
+                      <CalendarMonthIcon
+                        sx={{ color: "#28a745", fontSize: 20 }}
+                      />
+                      <Box>
+                        <Typography variant="body2" sx={{ color: "#666" }}>
+                          Created At
+                        </Typography>
+                        <Typography
+                          variant="body1"
+                          sx={{ color: "#333", fontWeight: 500 }}
+                        >
+                          {new Date(event.createdAt).toLocaleString()}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Box display="flex" alignItems="center" gap={2}>
+                      <UpdateIcon sx={{ color: "#28a745", fontSize: 20 }} />
+                      <Box>
+                        <Typography variant="body2" sx={{ color: "#666" }}>
+                          Last Updated
+                        </Typography>
+                        <Typography
+                          variant="body1"
+                          sx={{ color: "#333", fontWeight: 500 }}
+                        >
+                          {new Date(event.updatedAt).toLocaleString()}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Stack>
+                </CardContent>
+              </Card>
+            </Grid>
 
             {/* Ticket Types */}
             {ticketTypes.length > 0 && (
@@ -555,6 +800,108 @@ const EventView = () => {
                         </Grid>
                       ))}
                     </Grid>
+                  </CardContent>
+                </Card>
+              </Grid>
+            )}
+
+            {/* Purchases Information */}
+            {event.purchases && event.purchases.length > 0 && (
+              <Grid item xs={12} sx={{ width: "100%" }}>
+                <Card
+                  sx={{
+                    backgroundColor: "white",
+                    boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
+                    border: "1px solid #e0e0e0",
+                    width: "100%",
+                    maxWidth: "none",
+                  }}
+                >
+                  <CardContent>
+                    <Box display="flex" alignItems="center" gap={1} mb={3}>
+                      <MoneyIcon sx={{ color: "#28a745" }} />
+                      <Typography variant="h6" sx={{ color: "#333" }}>
+                        Purchases ({event.purchases.length})
+                      </Typography>
+                    </Box>
+                    <Stack spacing={3}>
+                      {event.purchases.map((purchase, index) => (
+                        <Box key={index}>
+                          <Card
+                            sx={{
+                              background:
+                                "linear-gradient(135deg, #28a745 0%, #20c997 100%)",
+                              color: "white",
+                              borderRadius: 3,
+                              p: 2,
+                              height: "100%",
+                              boxShadow: "0 8px 25px rgba(40, 167, 69, 0.3)",
+                              transition: "all 0.3s ease",
+                              "&:hover": {
+                                transform: "translateY(-5px)",
+                                boxShadow: "0 12px 35px rgba(40, 167, 69, 0.4)",
+                              },
+                            }}
+                          >
+                            <Typography
+                              variant="h6"
+                              sx={{ fontWeight: 700, mb: 2 }}
+                            >
+                              Purchase #{index + 1}
+                            </Typography>
+                            <Stack spacing={1}>
+                              <Box
+                                display="flex"
+                                justifyContent="space-between"
+                                alignItems="center"
+                              >
+                                <Typography variant="body2">Amount:</Typography>
+                                <Typography
+                                  variant="body2"
+                                  sx={{ fontWeight: 600 }}
+                                >
+                                  KES {purchase.amount?.toLocaleString() || 0}
+                                </Typography>
+                              </Box>
+                              {purchase.quantity && (
+                                <Box
+                                  display="flex"
+                                  justifyContent="space-between"
+                                  alignItems="center"
+                                >
+                                  <Typography variant="body2">
+                                    Quantity:
+                                  </Typography>
+                                  <Typography
+                                    variant="body2"
+                                    sx={{ fontWeight: 600 }}
+                                  >
+                                    {purchase.quantity}
+                                  </Typography>
+                                </Box>
+                              )}
+                              {purchase.status && (
+                                <Box
+                                  display="flex"
+                                  justifyContent="space-between"
+                                  alignItems="center"
+                                >
+                                  <Typography variant="body2">
+                                    Status:
+                                  </Typography>
+                                  <Typography
+                                    variant="body2"
+                                    sx={{ fontWeight: 600 }}
+                                  >
+                                    {purchase.status}
+                                  </Typography>
+                                </Box>
+                              )}
+                            </Stack>
+                          </Card>
+                        </Box>
+                      ))}
+                    </Stack>
                   </CardContent>
                 </Card>
               </Grid>
