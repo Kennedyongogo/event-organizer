@@ -32,6 +32,7 @@ import {
   CalendarMonth as CalendarMonthIcon,
   Update as UpdateIcon,
   Image as ImageIcon,
+  Add as AddIcon,
 } from "@mui/icons-material";
 
 const EventView = () => {
@@ -295,6 +296,21 @@ const EventView = () => {
               </Box>
             </Box>
             <Box display="flex" gap={2}>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => navigate(`/events/${id}/tickets/create`)}
+                sx={{
+                  backgroundColor: "rgba(255, 255, 255, 0.2)",
+                  color: "white",
+                  border: "1px solid rgba(255, 255, 255, 0.3)",
+                  "&:hover": {
+                    backgroundColor: "rgba(255, 255, 255, 0.3)",
+                  },
+                }}
+              >
+                Add Ticket
+              </Button>
               <Button
                 variant="contained"
                 startIcon={<EditIcon />}

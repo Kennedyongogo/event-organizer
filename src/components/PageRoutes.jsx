@@ -8,6 +8,7 @@ import Events from "./Events/Events";
 import EventView from "./Events/EventView";
 import EventEdit from "./Events/EventEdit";
 import EventCreate from "./Events/EventCreate";
+import TicketCreate from "./Events/TicketCreate";
 import Analytics from "./Analytics/Analytics";
 import MyProfile from "./Profile/MyProfile";
 
@@ -58,6 +59,10 @@ function PageRoutes() {
             <Route path="events/create" element={<EventCreate />} />
             <Route path="events/:id" element={<EventView />} />
             <Route path="events/:id/edit" element={<EventEdit />} />
+            <Route
+              path="events/:id/tickets/create"
+              element={<TicketCreate />}
+            />
             <Route path="analytics" element={<Analytics />} />
             <Route path="settings" element={<Settings user={user} />} />
             <Route path="*" element={<NotFound />} />
