@@ -36,7 +36,7 @@ import {
 } from "@mui/icons-material";
 import Swal from "sweetalert2";
 
-const images = ["/beth1.jpg", "/beth2.jpg", "/beth3.jpg"];
+const images = ["/ticka1.png", "/ticka2.png", "/ticka3.png"];
 
 export default function LoginPage(props) {
   const theme = useTheme();
@@ -46,7 +46,10 @@ export default function LoginPage(props) {
   const code = useRef();
   const [loading, setLoading] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
+  const [registerLoading, setRegisterLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoginMode, setIsLoginMode] = useState(true);
   const [body, updateBody] = useState({
     email: null,
   });
@@ -55,6 +58,15 @@ export default function LoginPage(props) {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [severity, setSeverity] = useState("error");
   const navigate = useNavigate();
+
+  // Registration form refs
+  const rfOrgName = useRef();
+  const rfContactPerson = useRef();
+  const rfRegEmail = useRef();
+  const rfRegPassword = useRef();
+  const rfConfirmPassword = useRef();
+  const rfPhone = useRef();
+  const rfAddress = useRef();
 
   const login = async (e) => {
     if (e) e.preventDefault();
@@ -95,7 +107,7 @@ export default function LoginPage(props) {
       });
 
       try {
-        const response = await fetch("/api/admins/login", {
+        const response = await fetch("/api/organizers/login", {
           method: "POST",
           credentials: "include",
           headers: {
@@ -124,10 +136,10 @@ export default function LoginPage(props) {
               showConfirmButton: false,
             });
             localStorage.setItem("token", data.data.token);
-            localStorage.setItem("userRole", data.data.admin.role);
-            localStorage.setItem("user", JSON.stringify(data.data.admin));
+            localStorage.setItem("userRole", "organizer");
+            localStorage.setItem("user", JSON.stringify(data.data.organizer));
             setTimeout(() => {
-              navigate("/analytics");
+              navigate("/profile");
             }, 1500);
           } else {
             Swal.fire({
@@ -175,7 +187,7 @@ export default function LoginPage(props) {
       });
 
       try {
-        const response = await fetch("/api/admins/forgot-password", {
+        const response = await fetch("/api/organizers/forgot-password", {
           method: "POST",
           credentials: "include",
           headers: {
@@ -225,6 +237,151 @@ export default function LoginPage(props) {
 
   const validatePassword = (password) => {
     return password.length >= 6;
+  };
+
+  const register = async (e) => {
+    if (e) e.preventDefault();
+
+    const registrationData = {
+      organization_name: rfOrgName.current.value.trim(),
+      contact_person: rfContactPerson.current.value.trim(),
+      email: rfRegEmail.current.value.toLowerCase().trim(),
+      password: rfRegPassword.current.value,
+      phone_number: rfPhone.current.value.trim(),
+      address: rfAddress.current.value.trim(),
+    };
+
+    // Validation
+    if (!registrationData.organization_name) {
+      Swal.fire({
+        icon: "error",
+        title: "Missing Information",
+        text: "Please enter your organization name",
+        confirmButtonColor: theme.palette.primary.main,
+      });
+      return;
+    }
+
+    if (!registrationData.contact_person) {
+      Swal.fire({
+        icon: "error",
+        title: "Missing Information",
+        text: "Please enter contact person name",
+        confirmButtonColor: theme.palette.primary.main,
+      });
+      return;
+    }
+
+    if (!validateEmail(registrationData.email)) {
+      Swal.fire({
+        icon: "error",
+        title: "Invalid Email",
+        text: "Please enter a valid email address",
+        confirmButtonColor: theme.palette.primary.main,
+      });
+      return;
+    }
+
+    if (!validatePassword(registrationData.password)) {
+      Swal.fire({
+        icon: "error",
+        title: "Invalid Password",
+        text: "Password must be at least 6 characters",
+        confirmButtonColor: theme.palette.primary.main,
+      });
+      return;
+    }
+
+    if (registrationData.password !== rfConfirmPassword.current.value) {
+      Swal.fire({
+        icon: "error",
+        title: "Password Mismatch",
+        text: "Passwords do not match",
+        confirmButtonColor: theme.palette.primary.main,
+      });
+      return;
+    }
+
+    if (!registrationData.phone_number) {
+      Swal.fire({
+        icon: "error",
+        title: "Missing Information",
+        text: "Please enter your phone number",
+        confirmButtonColor: theme.palette.primary.main,
+      });
+      return;
+    }
+
+    setRegisterLoading(true);
+    Swal.fire({
+      title: "Creating Account...",
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      },
+    });
+
+    try {
+      const response = await fetch("/api/organizers/register", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(registrationData),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        Swal.fire({
+          icon: "error",
+          title: "Registration Failed",
+          text: data.message,
+          confirmButtonColor: theme.palette.primary.main,
+        });
+      } else {
+        if (data.success) {
+          Swal.fire({
+            icon: "success",
+            title: "Registration Successful!",
+            text: "Your account has been created. Please wait for admin approval before you can login.",
+            timer: 3000,
+            showConfirmButton: false,
+          });
+
+          // Clear form
+          rfOrgName.current.value = "";
+          rfContactPerson.current.value = "";
+          rfRegEmail.current.value = "";
+          rfRegPassword.current.value = "";
+          rfConfirmPassword.current.value = "";
+          rfPhone.current.value = "";
+          rfAddress.current.value = "";
+
+          // Switch to login mode
+          setTimeout(() => {
+            setIsLoginMode(true);
+          }, 3000);
+        } else {
+          Swal.fire({
+            icon: "error",
+            title: "Registration Failed",
+            text: data.message,
+            confirmButtonColor: theme.palette.primary.main,
+          });
+        }
+      }
+    } catch (err) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Registration failed. Please try again.",
+        confirmButtonColor: theme.palette.primary.main,
+      });
+    } finally {
+      setRegisterLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -301,17 +458,17 @@ export default function LoginPage(props) {
           justifyContent: "center",
         }}
       >
-        <Container maxWidth="lg">
+        <Container maxWidth="lg" sx={{ px: { xs: 0.5, sm: 2, md: 3 } }}>
           <Grid
             container
-            spacing={4}
+            spacing={{ xs: 1, sm: 3, md: 4 }}
             alignItems="center"
             justifyContent="center"
           >
             <Grid size={{ xs: 12, md: 6 }}>
               <Fade in timeout={1000}>
                 <Stack
-                  spacing={4}
+                  spacing={{ xs: 1, sm: 3, md: 4 }}
                   alignItems={{ xs: "center", md: "flex-start" }}
                 >
                   <Slide direction="up" in timeout={1200}>
@@ -321,17 +478,22 @@ export default function LoginPage(props) {
                         sx={{
                           color: "#fff",
                           fontWeight: 700,
-                          fontSize: { xs: "2rem", sm: "2.5rem", md: "3rem" },
+                          fontSize: {
+                            xs: "1.5rem",
+                            sm: "2.5rem",
+                            md: "3rem",
+                            lg: "3.5rem",
+                          },
                           textAlign: { xs: "center", md: "left" },
                           letterSpacing: "1px",
-                          mb: 2,
+                          mb: { xs: 0.5, sm: 2 },
                           background: `linear-gradient(45deg, ${theme.palette.primary.light}, ${theme.palette.secondary.light})`,
                           backgroundClip: "text",
                           WebkitBackgroundClip: "text",
                           WebkitTextFillColor: "transparent",
                         }}
                       >
-                        Betheltus Construction LTD
+                        TickaZone
                       </Typography>
                     </Box>
                   </Slide>
@@ -347,255 +509,662 @@ export default function LoginPage(props) {
                 <Card
                   elevation={0}
                   sx={{
-                    p: 4,
-                    maxWidth: 450,
+                    p: { xs: 1.5, sm: 3, md: 4 },
+                    maxWidth: { xs: "100%", sm: 450, md: 500 },
                     width: "100%",
-                    borderRadius: 4,
+                    borderRadius: { xs: 2, sm: 4 },
                     background: "rgba(255, 255, 255, 0.1)",
                     backdropFilter: "blur(25px)",
                     border: "1px solid rgba(255, 255, 255, 0.2)",
                     boxShadow: "0 8px 32px rgba(0, 0, 0, 0.2)",
                     transition: "all 0.3s ease-in-out",
+                    mx: { xs: 0.5, sm: 0 },
+                    maxHeight: { xs: "90vh", sm: "none" },
+                    overflowY: { xs: "auto", sm: "visible" },
                     "&:hover": {
-                      transform: "translateY(-5px)",
+                      transform: { xs: "none", sm: "translateY(-5px)" },
                       boxShadow: "0 12px 40px rgba(0, 0, 0, 0.3)",
                       border: "1px solid rgba(255, 255, 255, 0.3)",
                     },
                   }}
                 >
-                  <form onSubmit={login}>
-                    <Typography
-                      textAlign="center"
-                      fontWeight="700"
-                      color="white"
-                      variant="h4"
-                      sx={{
-                        mb: 3,
-                        textShadow: "2px 2px 4px rgba(0,0,0,0.5)",
-                        letterSpacing: "1px",
-                      }}
-                    >
-                      Sign In
-                    </Typography>
+                  {/* Login Form */}
+                  {isLoginMode ? (
+                    <form onSubmit={login}>
+                      <Typography
+                        textAlign="center"
+                        fontWeight="700"
+                        color="white"
+                        variant="h4"
+                        sx={{
+                          mb: { xs: 2, sm: 3 },
+                          textShadow: "2px 2px 4px rgba(0,0,0,0.5)",
+                          letterSpacing: "1px",
+                          fontSize: {
+                            xs: "1.5rem",
+                            sm: "2rem",
+                            md: "2.125rem",
+                          },
+                        }}
+                      >
+                        Sign In
+                      </Typography>
 
-                    <TextField
-                      inputRef={rfEmail}
-                      type="email"
-                      label="Email Address"
-                      fullWidth
-                      margin="normal"
-                      variant="outlined"
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <Email sx={{ color: "rgba(255,255,255,0.7)" }} />
-                          </InputAdornment>
-                        ),
-                      }}
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "rgba(255, 255, 255, 0.15)",
-                          borderRadius: 3,
-                          border: "1px solid rgba(255, 255, 255, 0.2)",
+                      <TextField
+                        inputRef={rfEmail}
+                        type="email"
+                        label="Email Address"
+                        fullWidth
+                        margin="dense"
+                        variant="outlined"
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Email sx={{ color: "rgba(255,255,255,0.7)" }} />
+                            </InputAdornment>
+                          ),
+                        }}
+                        sx={{
+                          "& .MuiOutlinedInput-root": {
+                            backgroundColor: "rgba(255, 255, 255, 0.15)",
+                            borderRadius: 3,
+                            border: "1px solid rgba(255, 255, 255, 0.2)",
+                            transition: "all 0.3s ease",
+                            "&:hover": {
+                              backgroundColor: "rgba(255, 255, 255, 0.2)",
+                              border: "1px solid rgba(255, 255, 255, 0.4)",
+                            },
+                            "&.Mui-focused": {
+                              backgroundColor: "rgba(255, 255, 255, 0.25)",
+                              border: `2px solid ${theme.palette.primary.light}`,
+                              boxShadow: `0 0 20px ${theme.palette.primary.main}40`,
+                            },
+                          },
+                          "& .MuiInputLabel-root": {
+                            color: "rgba(255, 255, 255, 0.8)",
+                            "&.Mui-focused": {
+                              color: theme.palette.primary.light,
+                            },
+                          },
+                          "& .MuiInputBase-input": {
+                            color: "white",
+                            "&::placeholder": {
+                              color: "rgba(255, 255, 255, 0.6)",
+                            },
+                          },
+                        }}
+                      />
+
+                      <TextField
+                        inputRef={rfPassword}
+                        type={showPassword ? "text" : "password"}
+                        label="Password"
+                        fullWidth
+                        margin="dense"
+                        variant="outlined"
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Lock sx={{ color: "rgba(255,255,255,0.7)" }} />
+                            </InputAdornment>
+                          ),
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <IconButton
+                                onClick={() => setShowPassword(!showPassword)}
+                                edge="end"
+                                sx={{ color: "rgba(255,255,255,0.7)" }}
+                              >
+                                {showPassword ? (
+                                  <VisibilityOff />
+                                ) : (
+                                  <Visibility />
+                                )}
+                              </IconButton>
+                            </InputAdornment>
+                          ),
+                        }}
+                        sx={{
+                          "& .MuiOutlinedInput-root": {
+                            backgroundColor: "rgba(255, 255, 255, 0.15)",
+                            borderRadius: 3,
+                            border: "1px solid rgba(255, 255, 255, 0.2)",
+                            transition: "all 0.3s ease",
+                            "&:hover": {
+                              backgroundColor: "rgba(255, 255, 255, 0.2)",
+                              border: "1px solid rgba(255, 255, 255, 0.4)",
+                            },
+                            "&.Mui-focused": {
+                              backgroundColor: "rgba(255, 255, 255, 0.25)",
+                              border: `2px solid ${theme.palette.primary.light}`,
+                              boxShadow: `0 0 20px ${theme.palette.primary.main}40`,
+                            },
+                          },
+                          "& .MuiInputLabel-root": {
+                            color: "rgba(255, 255, 255, 0.8)",
+                            "&.Mui-focused": {
+                              color: theme.palette.primary.light,
+                            },
+                          },
+                          "& .MuiInputBase-input": {
+                            color: "white",
+                            "&::placeholder": {
+                              color: "rgba(255, 255, 255, 0.6)",
+                            },
+                          },
+                        }}
+                      />
+
+                      <Typography
+                        variant="body2"
+                        color="white"
+                        align="center"
+                        sx={{
+                          mt: 2,
+                          cursor: "pointer",
                           transition: "all 0.3s ease",
                           "&:hover": {
-                            backgroundColor: "rgba(255, 255, 255, 0.2)",
-                            border: "1px solid rgba(255, 255, 255, 0.4)",
-                          },
-                          "&.Mui-focused": {
-                            backgroundColor: "rgba(255, 255, 255, 0.25)",
-                            border: `2px solid ${theme.palette.primary.light}`,
-                            boxShadow: `0 0 20px ${theme.palette.primary.main}40`,
-                          },
-                        },
-                        "& .MuiInputLabel-root": {
-                          color: "rgba(255, 255, 255, 0.8)",
-                          "&.Mui-focused": {
+                            textDecoration: "underline",
                             color: theme.palette.primary.light,
+                            transform: "scale(1.05)",
                           },
-                        },
-                        "& .MuiInputBase-input": {
-                          color: "white",
-                          "&::placeholder": {
-                            color: "rgba(255, 255, 255, 0.6)",
-                          },
-                        },
-                      }}
-                    />
+                        }}
+                        onClick={() => setOpenResetDialog(true)}
+                      >
+                        Forgot password? Click here
+                      </Typography>
 
-                    <TextField
-                      inputRef={rfPassword}
-                      type={showPassword ? "text" : "password"}
-                      label="Password"
-                      fullWidth
-                      margin="normal"
-                      variant="outlined"
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <Lock sx={{ color: "rgba(255,255,255,0.7)" }} />
-                          </InputAdornment>
-                        ),
-                        endAdornment: (
-                          <InputAdornment position="end">
-                            <IconButton
-                              onClick={() => setShowPassword(!showPassword)}
-                              edge="end"
-                              sx={{ color: "rgba(255,255,255,0.7)" }}
-                            >
-                              {showPassword ? (
-                                <VisibilityOff />
-                              ) : (
-                                <Visibility />
-                              )}
-                            </IconButton>
-                          </InputAdornment>
-                        ),
-                      }}
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "rgba(255, 255, 255, 0.15)",
-                          borderRadius: 3,
-                          border: "1px solid rgba(255, 255, 255, 0.2)",
+                      <Button
+                        type="submit"
+                        variant="contained"
+                        fullWidth
+                        size="large"
+                        disabled={loading}
+                        startIcon={
+                          loading ? (
+                            <CircularProgress size={20} color="inherit" />
+                          ) : (
+                            <Login />
+                          )
+                        }
+                        sx={{
+                          mt: { xs: 2, sm: 3 },
+                          py: { xs: 1.2, sm: 1.5 },
+                          borderRadius: { xs: 2, sm: 3 },
+                          background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.light})`,
+                          boxShadow: `0 4px 15px ${theme.palette.primary.main}40`,
+                          transition: "all 0.3s ease",
+                          textTransform: "none",
+                          fontSize: { xs: "1rem", sm: "1.1rem" },
+                          fontWeight: 600,
+                          letterSpacing: "0.5px",
+                          "&:hover": {
+                            background: `linear-gradient(45deg, ${theme.palette.primary.dark}, ${theme.palette.primary.main})`,
+                            boxShadow: `0 6px 20px ${theme.palette.primary.main}60`,
+                            transform: "translateY(-2px)",
+                          },
+                          "&:disabled": {
+                            background: "rgba(255, 255, 255, 0.2)",
+                            color: theme.palette.primary.main,
+                          },
+                        }}
+                      >
+                        {loading ? "Signing In..." : "Sign In"}
+                      </Button>
+
+                      <Typography
+                        variant="body2"
+                        color="white"
+                        align="center"
+                        sx={{
+                          mt: 2,
+                          cursor: "pointer",
                           transition: "all 0.3s ease",
                           "&:hover": {
-                            backgroundColor: "rgba(255, 255, 255, 0.2)",
-                            border: "1px solid rgba(255, 255, 255, 0.4)",
-                          },
-                          "&.Mui-focused": {
-                            backgroundColor: "rgba(255, 255, 255, 0.25)",
-                            border: `2px solid ${theme.palette.primary.light}`,
-                            boxShadow: `0 0 20px ${theme.palette.primary.main}40`,
-                          },
-                        },
-                        "& .MuiInputLabel-root": {
-                          color: "rgba(255, 255, 255, 0.8)",
-                          "&.Mui-focused": {
+                            textDecoration: "underline",
                             color: theme.palette.primary.light,
+                            transform: "scale(1.05)",
                           },
-                        },
-                        "& .MuiInputBase-input": {
-                          color: "white",
-                          "&::placeholder": {
-                            color: "rgba(255, 255, 255, 0.6)",
+                        }}
+                        onClick={() => setIsLoginMode(false)}
+                      >
+                        Don't have an account? Register here
+                      </Typography>
+                    </form>
+                  ) : (
+                    /* Registration Form */
+                    <form onSubmit={register}>
+                      <Typography
+                        textAlign="center"
+                        fontWeight="700"
+                        color="white"
+                        variant="h4"
+                        sx={{
+                          mb: { xs: 1, sm: 2 },
+                          textShadow: "2px 2px 4px rgba(0,0,0,0.5)",
+                          letterSpacing: "1px",
+                          fontSize: {
+                            xs: "1.25rem",
+                            sm: "2rem",
+                            md: "2.125rem",
                           },
-                        },
-                      }}
-                    />
+                        }}
+                      >
+                        Create Account
+                      </Typography>
 
-                    <Typography
-                      variant="body2"
-                      color="white"
-                      align="center"
-                      sx={{
-                        mt: 2,
-                        cursor: "pointer",
-                        transition: "all 0.3s ease",
-                        "&:hover": {
-                          textDecoration: "underline",
-                          color: theme.palette.primary.light,
-                          transform: "scale(1.05)",
-                        },
-                      }}
-                      onClick={() => setOpenResetDialog(true)}
-                    >
-                      Forgot password? Click here
-                    </Typography>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          gap: { xs: 0.5, sm: 1.5 },
+                          flexDirection: { xs: "column", sm: "row" },
+                          mb: { xs: 0.5, sm: 0 },
+                        }}
+                      >
+                        <TextField
+                          inputRef={rfOrgName}
+                          type="text"
+                          label="Organization Name"
+                          fullWidth
+                          margin="dense"
+                          variant="outlined"
+                          sx={{
+                            "& .MuiOutlinedInput-root": {
+                              backgroundColor: "rgba(255, 255, 255, 0.15)",
+                              borderRadius: 3,
+                              border: "1px solid rgba(255, 255, 255, 0.2)",
+                              transition: "all 0.3s ease",
+                              "&:hover": {
+                                backgroundColor: "rgba(255, 255, 255, 0.2)",
+                                border: "1px solid rgba(255, 255, 255, 0.4)",
+                              },
+                              "&.Mui-focused": {
+                                backgroundColor: "rgba(255, 255, 255, 0.25)",
+                                border: `2px solid ${theme.palette.primary.light}`,
+                                boxShadow: `0 0 20px ${theme.palette.primary.main}40`,
+                              },
+                            },
+                            "& .MuiInputLabel-root": {
+                              color: "rgba(255, 255, 255, 0.8)",
+                              "&.Mui-focused": {
+                                color: theme.palette.primary.light,
+                              },
+                            },
+                            "& .MuiInputBase-input": {
+                              color: "white",
+                              "&::placeholder": {
+                                color: "rgba(255, 255, 255, 0.6)",
+                              },
+                            },
+                          }}
+                        />
 
-                    <Button
-                      type="submit"
-                      variant="contained"
-                      fullWidth
-                      size="large"
-                      disabled={loading}
-                      startIcon={
-                        loading ? (
-                          <CircularProgress size={20} color="inherit" />
-                        ) : (
-                          <Login />
-                        )
-                      }
-                      sx={{
-                        mt: 3,
-                        py: 1.5,
-                        borderRadius: 3,
-                        background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.light})`,
-                        boxShadow: `0 4px 15px ${theme.palette.primary.main}40`,
-                        transition: "all 0.3s ease",
-                        textTransform: "none",
-                        fontSize: "1.1rem",
-                        fontWeight: 600,
-                        letterSpacing: "0.5px",
-                        "&:hover": {
-                          background: `linear-gradient(45deg, ${theme.palette.primary.dark}, ${theme.palette.primary.main})`,
-                          boxShadow: `0 6px 20px ${theme.palette.primary.main}60`,
-                          transform: "translateY(-2px)",
-                        },
-                        "&:disabled": {
-                          background: "rgba(255, 255, 255, 0.2)",
-                          color: theme.palette.primary.main,
-                        },
-                      }}
-                    >
-                      {loading ? "Signing In..." : "Sign In"}
-                    </Button>
-                  </form>
+                        <TextField
+                          inputRef={rfContactPerson}
+                          type="text"
+                          label="Contact Person"
+                          fullWidth
+                          margin="dense"
+                          variant="outlined"
+                          sx={{
+                            "& .MuiOutlinedInput-root": {
+                              backgroundColor: "rgba(255, 255, 255, 0.15)",
+                              borderRadius: 3,
+                              border: "1px solid rgba(255, 255, 255, 0.2)",
+                              transition: "all 0.3s ease",
+                              "&:hover": {
+                                backgroundColor: "rgba(255, 255, 255, 0.2)",
+                                border: "1px solid rgba(255, 255, 255, 0.4)",
+                              },
+                              "&.Mui-focused": {
+                                backgroundColor: "rgba(255, 255, 255, 0.25)",
+                                border: `2px solid ${theme.palette.primary.light}`,
+                                boxShadow: `0 0 20px ${theme.palette.primary.main}40`,
+                              },
+                            },
+                            "& .MuiInputLabel-root": {
+                              color: "rgba(255, 255, 255, 0.8)",
+                              "&.Mui-focused": {
+                                color: theme.palette.primary.light,
+                              },
+                            },
+                            "& .MuiInputBase-input": {
+                              color: "white",
+                              "&::placeholder": {
+                                color: "rgba(255, 255, 255, 0.6)",
+                              },
+                            },
+                          }}
+                        />
+                      </Box>
+
+                      <TextField
+                        inputRef={rfRegEmail}
+                        type="email"
+                        label="Email Address"
+                        fullWidth
+                        margin="dense"
+                        variant="outlined"
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Email sx={{ color: "rgba(255,255,255,0.7)" }} />
+                            </InputAdornment>
+                          ),
+                        }}
+                        sx={{
+                          "& .MuiOutlinedInput-root": {
+                            backgroundColor: "rgba(255, 255, 255, 0.15)",
+                            borderRadius: 3,
+                            border: "1px solid rgba(255, 255, 255, 0.2)",
+                            transition: "all 0.3s ease",
+                            "&:hover": {
+                              backgroundColor: "rgba(255, 255, 255, 0.2)",
+                              border: "1px solid rgba(255, 255, 255, 0.4)",
+                            },
+                            "&.Mui-focused": {
+                              backgroundColor: "rgba(255, 255, 255, 0.25)",
+                              border: `2px solid ${theme.palette.primary.light}`,
+                              boxShadow: `0 0 20px ${theme.palette.primary.main}40`,
+                            },
+                          },
+                          "& .MuiInputLabel-root": {
+                            color: "rgba(255, 255, 255, 0.8)",
+                            "&.Mui-focused": {
+                              color: theme.palette.primary.light,
+                            },
+                          },
+                          "& .MuiInputBase-input": {
+                            color: "white",
+                            "&::placeholder": {
+                              color: "rgba(255, 255, 255, 0.6)",
+                            },
+                          },
+                        }}
+                      />
+
+                      <Box sx={{ mb: { xs: 0.5, sm: 0 } }} />
+
+                      <Box
+                        sx={{
+                          display: "flex",
+                          gap: { xs: 0.5, sm: 1.5 },
+                          flexDirection: { xs: "column", sm: "row" },
+                          mb: { xs: 0.5, sm: 0 },
+                        }}
+                      >
+                        <TextField
+                          inputRef={rfPhone}
+                          type="tel"
+                          label="Phone Number"
+                          fullWidth
+                          margin="dense"
+                          variant="outlined"
+                          sx={{
+                            "& .MuiOutlinedInput-root": {
+                              backgroundColor: "rgba(255, 255, 255, 0.15)",
+                              borderRadius: 3,
+                              border: "1px solid rgba(255, 255, 255, 0.2)",
+                              transition: "all 0.3s ease",
+                              "&:hover": {
+                                backgroundColor: "rgba(255, 255, 255, 0.2)",
+                                border: "1px solid rgba(255, 255, 255, 0.4)",
+                              },
+                              "&.Mui-focused": {
+                                backgroundColor: "rgba(255, 255, 255, 0.25)",
+                                border: `2px solid ${theme.palette.primary.light}`,
+                                boxShadow: `0 0 20px ${theme.palette.primary.main}40`,
+                              },
+                            },
+                            "& .MuiInputLabel-root": {
+                              color: "rgba(255, 255, 255, 0.8)",
+                              "&.Mui-focused": {
+                                color: theme.palette.primary.light,
+                              },
+                            },
+                            "& .MuiInputBase-input": {
+                              color: "white",
+                              "&::placeholder": {
+                                color: "rgba(255, 255, 255, 0.6)",
+                              },
+                            },
+                          }}
+                        />
+
+                        <TextField
+                          inputRef={rfAddress}
+                          type="text"
+                          label="Address (Optional)"
+                          fullWidth
+                          margin="dense"
+                          variant="outlined"
+                          sx={{
+                            "& .MuiOutlinedInput-root": {
+                              backgroundColor: "rgba(255, 255, 255, 0.15)",
+                              borderRadius: 3,
+                              border: "1px solid rgba(255, 255, 255, 0.2)",
+                              transition: "all 0.3s ease",
+                              "&:hover": {
+                                backgroundColor: "rgba(255, 255, 255, 0.2)",
+                                border: "1px solid rgba(255, 255, 255, 0.4)",
+                              },
+                              "&.Mui-focused": {
+                                backgroundColor: "rgba(255, 255, 255, 0.25)",
+                                border: `2px solid ${theme.palette.primary.light}`,
+                                boxShadow: `0 0 20px ${theme.palette.primary.main}40`,
+                              },
+                            },
+                            "& .MuiInputLabel-root": {
+                              color: "rgba(255, 255, 255, 0.8)",
+                              "&.Mui-focused": {
+                                color: theme.palette.primary.light,
+                              },
+                            },
+                            "& .MuiInputBase-input": {
+                              color: "white",
+                              "&::placeholder": {
+                                color: "rgba(255, 255, 255, 0.6)",
+                              },
+                            },
+                          }}
+                        />
+                      </Box>
+
+                      <Box
+                        sx={{
+                          display: "flex",
+                          gap: { xs: 0.5, sm: 1.5 },
+                          flexDirection: { xs: "column", sm: "row" },
+                          mb: { xs: 0.5, sm: 0 },
+                        }}
+                      >
+                        <TextField
+                          inputRef={rfRegPassword}
+                          type={showPassword ? "text" : "password"}
+                          label="Password"
+                          fullWidth
+                          margin="dense"
+                          variant="outlined"
+                          InputProps={{
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <Lock sx={{ color: "rgba(255,255,255,0.7)" }} />
+                              </InputAdornment>
+                            ),
+                            endAdornment: (
+                              <InputAdornment position="end">
+                                <IconButton
+                                  onClick={() => setShowPassword(!showPassword)}
+                                  edge="end"
+                                  sx={{ color: "rgba(255,255,255,0.7)" }}
+                                >
+                                  {showPassword ? (
+                                    <VisibilityOff />
+                                  ) : (
+                                    <Visibility />
+                                  )}
+                                </IconButton>
+                              </InputAdornment>
+                            ),
+                          }}
+                          sx={{
+                            "& .MuiOutlinedInput-root": {
+                              backgroundColor: "rgba(255, 255, 255, 0.15)",
+                              borderRadius: 3,
+                              border: "1px solid rgba(255, 255, 255, 0.2)",
+                              transition: "all 0.3s ease",
+                              "&:hover": {
+                                backgroundColor: "rgba(255, 255, 255, 0.2)",
+                                border: "1px solid rgba(255, 255, 255, 0.4)",
+                              },
+                              "&.Mui-focused": {
+                                backgroundColor: "rgba(255, 255, 255, 0.25)",
+                                border: `2px solid ${theme.palette.primary.light}`,
+                                boxShadow: `0 0 20px ${theme.palette.primary.main}40`,
+                              },
+                            },
+                            "& .MuiInputLabel-root": {
+                              color: "rgba(255, 255, 255, 0.8)",
+                              "&.Mui-focused": {
+                                color: theme.palette.primary.light,
+                              },
+                            },
+                            "& .MuiInputBase-input": {
+                              color: "white",
+                              "&::placeholder": {
+                                color: "rgba(255, 255, 255, 0.6)",
+                              },
+                            },
+                          }}
+                        />
+
+                        <TextField
+                          inputRef={rfConfirmPassword}
+                          type={showConfirmPassword ? "text" : "password"}
+                          label="Confirm Password"
+                          fullWidth
+                          margin="dense"
+                          variant="outlined"
+                          InputProps={{
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <Lock sx={{ color: "rgba(255,255,255,0.7)" }} />
+                              </InputAdornment>
+                            ),
+                            endAdornment: (
+                              <InputAdornment position="end">
+                                <IconButton
+                                  onClick={() =>
+                                    setShowConfirmPassword(!showConfirmPassword)
+                                  }
+                                  edge="end"
+                                  sx={{ color: "rgba(255,255,255,0.7)" }}
+                                >
+                                  {showConfirmPassword ? (
+                                    <VisibilityOff />
+                                  ) : (
+                                    <Visibility />
+                                  )}
+                                </IconButton>
+                              </InputAdornment>
+                            ),
+                          }}
+                          sx={{
+                            "& .MuiOutlinedInput-root": {
+                              backgroundColor: "rgba(255, 255, 255, 0.15)",
+                              borderRadius: 3,
+                              border: "1px solid rgba(255, 255, 255, 0.2)",
+                              transition: "all 0.3s ease",
+                              "&:hover": {
+                                backgroundColor: "rgba(255, 255, 255, 0.2)",
+                                border: "1px solid rgba(255, 255, 255, 0.4)",
+                              },
+                              "&.Mui-focused": {
+                                backgroundColor: "rgba(255, 255, 255, 0.25)",
+                                border: `2px solid ${theme.palette.primary.light}`,
+                                boxShadow: `0 0 20px ${theme.palette.primary.main}40`,
+                              },
+                            },
+                            "& .MuiInputLabel-root": {
+                              color: "rgba(255, 255, 255, 0.8)",
+                              "&.Mui-focused": {
+                                color: theme.palette.primary.light,
+                              },
+                            },
+                            "& .MuiInputBase-input": {
+                              color: "white",
+                              "&::placeholder": {
+                                color: "rgba(255, 255, 255, 0.6)",
+                              },
+                            },
+                          }}
+                        />
+                      </Box>
+
+                      <Button
+                        type="submit"
+                        variant="contained"
+                        fullWidth
+                        size="large"
+                        disabled={registerLoading}
+                        startIcon={
+                          registerLoading ? (
+                            <CircularProgress size={20} color="inherit" />
+                          ) : (
+                            <Login />
+                          )
+                        }
+                        sx={{
+                          mt: { xs: 1, sm: 2 },
+                          py: { xs: 0.8, sm: 1.2 },
+                          borderRadius: { xs: 2, sm: 3 },
+                          background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.light})`,
+                          boxShadow: `0 4px 15px ${theme.palette.primary.main}40`,
+                          transition: "all 0.3s ease",
+                          textTransform: "none",
+                          fontSize: { xs: "0.9rem", sm: "1.1rem" },
+                          fontWeight: 600,
+                          letterSpacing: "0.5px",
+                          "&:hover": {
+                            background: `linear-gradient(45deg, ${theme.palette.primary.dark}, ${theme.palette.primary.main})`,
+                            boxShadow: `0 6px 20px ${theme.palette.primary.main}60`,
+                            transform: "translateY(-2px)",
+                          },
+                          "&:disabled": {
+                            background: "rgba(255, 255, 255, 0.2)",
+                            color: theme.palette.primary.main,
+                          },
+                        }}
+                      >
+                        {registerLoading
+                          ? "Creating Account..."
+                          : "Create Account"}
+                      </Button>
+
+                      <Typography
+                        variant="body2"
+                        color="white"
+                        align="center"
+                        sx={{
+                          mt: { xs: 1, sm: 1.5 },
+                          cursor: "pointer",
+                          transition: "all 0.3s ease",
+                          "&:hover": {
+                            textDecoration: "underline",
+                            color: theme.palette.primary.light,
+                            transform: "scale(1.05)",
+                          },
+                        }}
+                        onClick={() => setIsLoginMode(true)}
+                      >
+                        Already have an account? Sign in here
+                      </Typography>
+                    </form>
+                  )}
                 </Card>
               </Slide>
             </Grid>
           </Grid>
-
-          {/* Footer with logos */}
-          <Fade in timeout={2000}>
-            <Box
-              sx={{
-                position: "fixed",
-                bottom: 20,
-                left: "50%",
-                transform: "translateX(-50%)",
-                display: "flex",
-                alignItems: "center",
-                gap: 4,
-                background: "rgba(255, 255, 255, 0.1)",
-                backdropFilter: "blur(25px)",
-                p: 2,
-                borderRadius: 3,
-                border: "1px solid rgba(255, 255, 255, 0.2)",
-                boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
-                transition: "all 0.3s ease",
-                "&:hover": {
-                  background: "rgba(255, 255, 255, 0.15)",
-                  transform: "translateX(-50%) translateY(-2px)",
-                },
-              }}
-            >
-              <Box>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: "#fff",
-                    display: "block",
-                    textAlign: "center",
-                    fontWeight: 500,
-                    letterSpacing: "0.5px",
-                  }}
-                >
-                  Powered by
-                </Typography>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    color: "#fff",
-                    fontWeight: 600,
-                    letterSpacing: "1px",
-                    textShadow: "2px 2px 4px rgba(0,0,0,0.5)",
-                  }}
-                >
-                  Carl Solutions
-                </Typography>
-              </Box>
-            </Box>
-          </Fade>
         </Container>
       </Box>
 

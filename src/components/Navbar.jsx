@@ -161,56 +161,11 @@ const Navbar = (props) => {
 
   const adminItems = [
     { text: "Dashboard", icon: <Dashboard />, path: "/analytics" },
+    { text: "My Profile", icon: <AccountCircle />, path: "/profile" },
     {
-      text: "Projects",
-      icon: <Business />,
-      path: "/projects",
-    },
-    {
-      text: "Construction Management",
-      icon: <Engineering />,
-      subItems: [
-        {
-          text: "Tasks",
-          icon: <Assignment />,
-          path: "/tasks",
-        },
-        {
-          text: "Materials",
-          icon: <Inventory />,
-          path: "/materials",
-        },
-        {
-          text: "Equipment",
-          icon: <Construction />,
-          path: "/equipment",
-        },
-        {
-          text: "Labor",
-          icon: <Work />,
-          path: "/labor",
-        },
-        {
-          text: "Budget",
-          icon: <AttachMoney />,
-          path: "/budget",
-        },
-      ],
-    },
-    {
-      text: "Issues",
-      icon: <Warning />,
-      path: "/issues",
-    },
-    {
-      text: "Construction Map",
-      icon: <Map />,
-      path: "/map",
-    },
-    {
-      text: "Documents",
-      icon: <Folder />,
-      path: "/documents",
+      text: "Events",
+      icon: <Schedule />,
+      path: "/events",
     },
   ];
 
@@ -384,40 +339,6 @@ const Navbar = (props) => {
         </List>
         <Divider />
         <List>
-          {user && user.role === "super_admin" && (
-            <ListItem
-              button
-              onClick={() => navigate("/users")}
-              selected={location.pathname === "/users"}
-              sx={{
-                cursor: "pointer",
-                bgcolor:
-                  location.pathname === "/users"
-                    ? "action.selected"
-                    : "transparent",
-              }}
-            >
-              <ListItemIcon>
-                <PeopleAlt
-                  color={
-                    location.pathname === "/users" ? "primary" : "textSecondary"
-                  }
-                />
-              </ListItemIcon>
-              <ListItemText
-                primary="Users"
-                sx={{
-                  cursor: "pointer",
-                  color:
-                    location.pathname === "/users"
-                      ? "primary"
-                      : "textSecondary",
-                  fontWeight:
-                    location.pathname === "/users" ? "bold" : "normal",
-                }}
-              />
-            </ListItem>
-          )}
           <ListItem
             button
             onClick={() => navigate("/settings")}
