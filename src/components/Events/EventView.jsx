@@ -41,7 +41,6 @@ const EventView = () => {
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [ticketTypes, setTicketTypes] = useState([]);
 
   // Helper to build URL for uploaded assets using Vite proxy
   const buildImageUrl = (imageUrl) => {
@@ -56,7 +55,6 @@ const EventView = () => {
 
   useEffect(() => {
     fetchEvent();
-    fetchTicketTypes();
   }, [id]);
 
   const fetchEvent = async () => {
@@ -94,24 +92,6 @@ const EventView = () => {
       console.error("EventView - Error fetching event:", err);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchTicketTypes = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`/api/ticket-types/event/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const result = await response.json();
-      if (result.success) {
-        setTicketTypes(result.data || []);
-      }
-    } catch (err) {
-      console.error("Error fetching ticket types:", err);
     }
   };
 
@@ -718,7 +698,7 @@ const EventView = () => {
             </Grid>
 
             {/* Ticket Types */}
-            {ticketTypes.length > 0 && (
+            {event.ticketTypes && event.ticketTypes.length > 0 && (
               <Grid item xs={12} sx={{ width: "100%" }}>
                 <Card
                   sx={{
@@ -733,11 +713,11 @@ const EventView = () => {
                     <Box display="flex" alignItems="center" gap={1} mb={3}>
                       <TicketIcon sx={{ color: "#ff6b6b" }} />
                       <Typography variant="h5" sx={{ color: "#333" }}>
-                        Ticket Types ({ticketTypes.length})
+                        Ticket Types ({event.ticketTypes.length})
                       </Typography>
                     </Box>
                     <Grid container spacing={2}>
-                      {ticketTypes.map((ticket, index) => (
+                      {event.ticketTypes.map((ticket, index) => (
                         <Grid item xs={12} sm={6} md={4} key={index}>
                           <Card
                             sx={{
@@ -766,7 +746,7 @@ const EventView = () => {
                               variant="h4"
                               sx={{ fontWeight: 800, mb: 2 }}
                             >
-                              KES {ticket.price?.toLocaleString()}
+                              KES {parseFloat(ticket.price)?.toLocaleString()}
                             </Typography>
                             <Divider
                               sx={{
@@ -780,6 +760,19 @@ const EventView = () => {
                                 justifyContent="space-between"
                                 alignItems="center"
                               >
+                                <Typography variant="body2">Total:</Typography>
+                                <Typography
+                                  variant="body2"
+                                  sx={{ fontWeight: 600 }}
+                                >
+                                  {ticket.total_quantity || 0}
+                                </Typography>
+                              </Box>
+                              <Box
+                                display="flex"
+                                justifyContent="space-between"
+                                alignItems="center"
+                              >
                                 <Typography variant="body2">
                                   Available:
                                 </Typography>
@@ -787,7 +780,7 @@ const EventView = () => {
                                   variant="body2"
                                   sx={{ fontWeight: 600 }}
                                 >
-                                  {ticket.quantity_available || 0}
+                                  {ticket.remaining_quantity || 0}
                                 </Typography>
                               </Box>
                               <Box
@@ -800,17 +793,10 @@ const EventView = () => {
                                   variant="body2"
                                   sx={{ fontWeight: 600 }}
                                 >
-                                  {ticket.quantity_sold || 0}
+                                  {(ticket.total_quantity || 0) -
+                                    (ticket.remaining_quantity || 0)}
                                 </Typography>
                               </Box>
-                              {ticket.description && (
-                                <Typography
-                                  variant="caption"
-                                  sx={{ mt: 1, opacity: 0.9 }}
-                                >
-                                  {ticket.description}
-                                </Typography>
-                              )}
                             </Stack>
                           </Card>
                         </Grid>
