@@ -25,6 +25,10 @@ import {
   ListItemText,
   Avatar,
   TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from "@mui/material";
 import {
   BarChart,
@@ -86,21 +90,9 @@ const Analytics = () => {
   const [dataLoaded, setDataLoaded] = useState(false);
   const [analyticsData, setAnalyticsData] = useState({
     overview: {},
-    projects: {},
-    tasks: {},
-    budget: {},
-    issues: {},
-    equipment: {},
-    labor: {},
-    materials: {},
-    equipmentSummary: {},
-    performance: {},
-    recentActivity: {},
-    documents: {},
-    engineers: {},
+    events: {},
+    revenue: {},
   });
-  const [projectsByDate, setProjectsByDate] = useState([]);
-  const [tasksByDate, setTasksByDate] = useState([]);
   // Helper function to format date for display
   const formatDateForDisplay = (dateString) => {
     const date = new Date(dateString);
@@ -121,25 +113,17 @@ const Analytics = () => {
   });
 
   const [overviewHelpOpen, setOverviewHelpOpen] = useState(false);
-  const [projectsHelpOpen, setProjectsHelpOpen] = useState(false);
-  const [tasksLaborHelpOpen, setTasksLaborHelpOpen] = useState(false);
-  const [budgetResourcesHelpOpen, setBudgetResourcesHelpOpen] = useState(false);
-  const [performanceHelpOpen, setPerformanceHelpOpen] = useState(false);
-  const [equipmentMaterialsHelpOpen, setEquipmentMaterialsHelpOpen] =
-    useState(false);
+  const [eventsHelpOpen, setEventsHelpOpen] = useState(false);
+  const [revenueHelpOpen, setRevenueHelpOpen] = useState(false);
 
   const tabs = [
     { label: "Overview", icon: <AnalyticsIcon />, value: 0 },
-    { label: "Projects", icon: <MapIcon />, value: 1 },
-    { label: "Tasks", icon: <BarChartIcon />, value: 2 },
-    { label: "Budget", icon: <PieChartIcon />, value: 3 },
-    { label: "Performance", icon: <Timeline />, value: 4 },
-    { label: "Equipment & Materials", icon: <GaugeIcon />, value: 5 },
+    { label: "Events", icon: <MapIcon />, value: 1 },
+    { label: "Revenue", icon: <PieChartIcon />, value: 2 },
   ];
 
   useEffect(() => {
     fetchAnalyticsData();
-    fetchProjectsByDate();
   }, [dateRange]);
 
   const fetchAnalyticsData = async () => {
@@ -152,60 +136,84 @@ const Analytics = () => {
         throw new Error("No authentication token found");
       }
 
-      const response = await fetch("/api/admins/dashboard/stats", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      // Get organizer ID from user data in localStorage
+      const userData = localStorage.getItem("user");
+      if (!userData) {
+        throw new Error("User data not found. Please log in again.");
       }
 
-      const data = await response.json();
-      console.log("Dashboard API Response:", data); // Debug log
+      const user = JSON.parse(userData);
+      const organizerId = user.id;
+      if (!organizerId) {
+        throw new Error("Organizer ID not found in user data");
+      }
 
-      if (data.success) {
-        setAnalyticsData(data.data);
+      // Build query parameters for date filtering
+      const queryParams = new URLSearchParams({
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate,
+      });
+
+      // Fetch all three organizer analytics endpoints with date filtering
+      const [overviewRes, eventsRes, revenueRes] = await Promise.all([
+        fetch(`/api/organizers/${organizerId}/dashboard?${queryParams}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }),
+        fetch(
+          `/api/organizers/${organizerId}/analytics/events?${queryParams}`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        ),
+        fetch(
+          `/api/organizers/${organizerId}/analytics/revenue?${queryParams}`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        ),
+      ]);
+
+      const [overviewData, eventsData, revenueData] = await Promise.all([
+        overviewRes.json(),
+        eventsRes.json(),
+        revenueRes.json(),
+      ]);
+
+      console.log("Organizer Analytics API Responses:", {
+        overviewData,
+        eventsData,
+        revenueData,
+      });
+
+      if (overviewData.success && eventsData.success && revenueData.success) {
+        setAnalyticsData({
+          overview: overviewData.data,
+          events: eventsData.data,
+          revenue: revenueData.data,
+        });
         setDataLoaded(true);
-        console.log("Analytics data set:", data.data); // Debug log
       } else {
-        throw new Error(data.message || "Failed to fetch analytics data");
+        throw new Error(
+          "Failed to fetch analytics data from one or more endpoints"
+        );
       }
     } catch (err) {
       console.error("Error fetching analytics data:", err);
       setError(err.message);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchProjectsByDate = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
-      const response = await fetch(
-        `/api/admins/projects/by-date?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}&groupBy=day`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          setProjectsByDate(data.data.chartData);
-        }
-      }
-    } catch (err) {
-      console.error("Error fetching projects by date:", err);
     }
   };
 
@@ -221,19 +229,19 @@ const Analytics = () => {
         <Box display="flex" alignItems="center" gap={1}>
           <InfoIcon color="primary" />
           <Typography variant="h6" fontWeight="bold">
-            Construction Overview - Data Explanation
+            Event Management Overview - Data Explanation
           </Typography>
         </Box>
       </DialogTitle>
       <DialogContent>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          This overview provides key metrics and insights about your
-          construction projects. Here's what each section means:
+          This overview provides key metrics and insights about your event
+          management system. Here's what each section means:
         </Typography>
 
         {/* Key Metrics Cards */}
         <Typography variant="h6" fontWeight="600" sx={{ mb: 2, mt: 3 }}>
-          📊 Key Metrics Cards
+          📊 Dashboard Overview
         </Typography>
         <List dense>
           <ListItem>
@@ -241,101 +249,26 @@ const Analytics = () => {
               <MapIcon color="primary" />
             </ListItemIcon>
             <ListItemText
-              primary="Total Projects"
-              secondary="The total number of construction projects in your system"
+              primary="Total Events"
+              secondary="The total number of events you have created"
             />
           </ListItem>
           <ListItem>
             <ListItemIcon>
-              <BarChartIcon color="secondary" />
+              <BarChartIcon color="success" />
             </ListItemIcon>
             <ListItemText
-              primary="Total Tasks"
-              secondary="The total number of tasks across all projects"
+              primary="Approved Events"
+              secondary="The number of events that have been approved by admin"
             />
           </ListItem>
           <ListItem>
             <ListItemIcon>
-              <PeopleIcon color="success" />
+              <PeopleIcon color="info" />
             </ListItemIcon>
             <ListItemText
-              primary="Total Labor"
-              secondary="The total number of workers assigned to projects"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <GaugeIcon color="warning" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Total Equipment"
-              secondary="The total number of equipment items available"
-            />
-          </ListItem>
-        </List>
-
-        {/* Project Metrics */}
-        <Typography variant="h6" fontWeight="600" sx={{ mb: 2, mt: 3 }}>
-          📈 Project Metrics
-        </Typography>
-        <List dense>
-          <ListItem>
-            <ListItemIcon>
-              <AssessmentIcon color="primary" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Average Progress"
-              secondary="The average completion percentage across all projects"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <PieChartIcon color="secondary" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Budget Utilization"
-              secondary="Percentage of budget that has been spent (Actual ÷ Budgeted × 100)"
-            />
-          </ListItem>
-        </List>
-
-        {/* Resource Analysis */}
-        <Typography variant="h6" fontWeight="600" sx={{ mb: 2, mt: 3 }}>
-          🏗️ Resource Analysis
-        </Typography>
-        <List dense>
-          <ListItem>
-            <ListItemIcon>
-              <GaugeIcon color="success" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Material Utilization"
-              secondary="Percentage of materials that have been used (Used ÷ Required × 100)"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <GaugeIcon color="info" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Total Equipment"
-              secondary="Total number of equipment items in your inventory"
-            />
-          </ListItem>
-        </List>
-
-        {/* Performance Insights */}
-        <Typography variant="h6" fontWeight="600" sx={{ mb: 2, mt: 3 }}>
-          💡 Performance Insights
-        </Typography>
-        <List dense>
-          <ListItem>
-            <ListItemIcon>
-              <PeopleIcon color="primary" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Top Engineer"
-              secondary="The engineer managing the most projects"
+              primary="Completed Events"
+              secondary="The number of events that have been completed"
             />
           </ListItem>
           <ListItem>
@@ -343,18 +276,27 @@ const Analytics = () => {
               <AssessmentIcon color="warning" />
             </ListItemIcon>
             <ListItemText
-              primary="Projects at Risk"
-              secondary="Number of projects that may be behind schedule or over budget"
+              primary="Pending Events"
+              secondary="The number of events awaiting admin approval"
+            />
+          </ListItem>
+          <ListItem>
+            <ListItemIcon>
+              <GaugeIcon color="error" />
+            </ListItemIcon>
+            <ListItemText
+              primary="Total Revenue"
+              secondary="The total revenue you have earned from your events"
             />
           </ListItem>
         </List>
 
         <Alert severity="info" sx={{ mt: 3 }}>
           <Typography variant="body2">
-            <strong>💡 Tip:</strong> These metrics help you understand project
+            <strong>💡 Tip:</strong> These metrics help you understand event
             performance, identify areas needing attention, and track progress
-            over time. Higher percentages generally indicate better performance
-            and resource utilization.
+            over time. Higher numbers generally indicate better performance and
+            successful event management.
           </Typography>
         </Alert>
       </DialogContent>
@@ -366,11 +308,11 @@ const Analytics = () => {
     </Dialog>
   );
 
-  // Projects Help Dialog Component
-  const ProjectsHelpDialog = () => (
+  // Events Help Dialog Component
+  const EventsHelpDialog = () => (
     <Dialog
-      open={projectsHelpOpen}
-      onClose={() => setProjectsHelpOpen(false)}
+      open={eventsHelpOpen}
+      onClose={() => setEventsHelpOpen(false)}
       maxWidth="md"
       fullWidth
     >
@@ -378,351 +320,35 @@ const Analytics = () => {
         <Box display="flex" alignItems="center" gap={1}>
           <MapIcon color="primary" />
           <Typography variant="h6" fontWeight="bold">
-            Projects Tab - Data Explanation
+            Events Tab - Data Explanation
           </Typography>
         </Box>
       </DialogTitle>
       <DialogContent>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          The Projects tab shows project status distribution, construction
-          types, and recent project information. Here's how to understand what
-          you're seeing:
+          The Events tab shows event status distribution, category breakdown,
+          and analytics summary.
         </Typography>
-
-        {/* Project Status Chart */}
-        <Typography variant="h6" fontWeight="600" sx={{ mb: 2, mt: 3 }}>
-          📊 Project Status Distribution
-        </Typography>
-        <List dense>
-          <ListItem>
-            <ListItemIcon>
-              <Chip label="Planning" color="info" size="small" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Planning"
-              secondary="Projects in the initial planning phase - not yet started"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <Chip label="In Progress" color="primary" size="small" />
-            </ListItemIcon>
-            <ListItemText
-              primary="In Progress"
-              secondary="Projects currently under construction"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <Chip label="Completed" color="success" size="small" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Completed"
-              secondary="Projects that have been finished"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <Chip label="On Hold" color="warning" size="small" />
-            </ListItemIcon>
-            <ListItemText
-              primary="On Hold"
-              secondary="Projects temporarily paused due to various reasons"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <Chip label="Cancelled" color="error" size="small" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Cancelled"
-              secondary="Projects that have been terminated"
-            />
-          </ListItem>
-        </List>
-
-        {/* Construction Type Chart */}
-        <Typography variant="h6" fontWeight="600" sx={{ mb: 2, mt: 3 }}>
-          🏗️ Construction Type Distribution
-        </Typography>
-        <List dense>
-          <ListItem>
-            <ListItemIcon>
-              <MapIcon color="primary" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Building"
-              secondary="Residential and commercial building construction projects"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <LocationIcon color="secondary" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Infrastructure"
-              secondary="Roads, bridges, utilities, and public infrastructure projects"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <GaugeIcon color="success" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Industrial"
-              secondary="Factories, warehouses, and industrial facility construction"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <AssessmentIcon color="warning" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Specialized"
-              secondary="Unique or specialized construction projects"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <InfoIcon color="info" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Other"
-              secondary="Projects that don't fit into the above categories"
-            />
-          </ListItem>
-        </List>
-
-        {/* Recent Projects */}
-        <Typography variant="h6" fontWeight="600" sx={{ mb: 2, mt: 3 }}>
-          📋 Recent Projects
-        </Typography>
-        <List dense>
-          <ListItem>
-            <ListItemIcon>
-              <PeopleIcon color="primary" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Project Name"
-              secondary="The name of the construction project"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <AssessmentIcon color="secondary" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Status & Engineer"
-              secondary="Current project status and the engineer in charge"
-            />
-          </ListItem>
-        </List>
-
         <Alert severity="info" sx={{ mt: 3 }}>
           <Typography variant="body2">
-            <strong>💡 Tip:</strong> Use these charts to track project progress,
-            identify bottlenecks, and understand the distribution of your
-            project portfolio across different types and statuses.
+            <strong>💡 Tip:</strong> Use these charts to track event performance
+            and understand your event portfolio distribution.
           </Typography>
         </Alert>
       </DialogContent>
       <DialogActions>
-        <Button onClick={() => setProjectsHelpOpen(false)} color="primary">
+        <Button onClick={() => setEventsHelpOpen(false)} color="primary">
           Got it!
         </Button>
       </DialogActions>
     </Dialog>
   );
 
-  // Tasks & Labor Help Dialog Component
-  const TasksLaborHelpDialog = () => (
+  // Revenue Help Dialog Component
+  const RevenueHelpDialog = () => (
     <Dialog
-      open={tasksLaborHelpOpen}
-      onClose={() => setTasksLaborHelpOpen(false)}
-      maxWidth="md"
-      fullWidth
-    >
-      <DialogTitle>
-        <Box display="flex" alignItems="center" gap={1}>
-          <BarChartIcon color="primary" />
-          <Typography variant="h6" fontWeight="bold">
-            Tasks & Labor Tab - Data Explanation
-          </Typography>
-        </Box>
-      </DialogTitle>
-      <DialogContent>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          The Tasks & Labor tab shows task status distribution, labor workforce
-          analysis, and recent task information. Here's how to understand what
-          you're seeing:
-        </Typography>
-
-        {/* Task Status Chart */}
-        <Typography variant="h6" fontWeight="600" sx={{ mb: 2, mt: 3 }}>
-          📊 Task Status Distribution
-        </Typography>
-        <List dense>
-          <ListItem>
-            <ListItemIcon>
-              <Chip label="Pending" color="warning" size="small" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Pending"
-              secondary="Tasks that are assigned but not yet started"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <Chip label="In Progress" color="primary" size="small" />
-            </ListItemIcon>
-            <ListItemText
-              primary="In Progress"
-              secondary="Tasks currently being worked on"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <Chip label="Completed" color="success" size="small" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Completed"
-              secondary="Tasks that have been finished"
-            />
-          </ListItem>
-        </List>
-
-        {/* Labor Type Chart */}
-        <Typography variant="h6" fontWeight="600" sx={{ mb: 2, mt: 3 }}>
-          👷 Labor by Worker Type
-        </Typography>
-        <List dense>
-          <ListItem>
-            <ListItemIcon>
-              <PeopleIcon color="primary" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Foreman"
-              secondary="Supervisory workers who oversee construction activities"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <AssessmentIcon color="secondary" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Skilled Worker"
-              secondary="Workers with specialized skills and training"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <GaugeIcon color="success" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Unskilled Worker"
-              secondary="General laborers without specialized training"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <InfoIcon color="warning" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Engineer"
-              secondary="Technical professionals with engineering qualifications"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <TrendingUp color="info" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Supervisor"
-              secondary="Management-level workers who coordinate teams"
-            />
-          </ListItem>
-        </List>
-
-        {/* Labor Summary */}
-        <Typography variant="h6" fontWeight="600" sx={{ mb: 2, mt: 3 }}>
-          💰 Labor Summary
-        </Typography>
-        <List dense>
-          <ListItem>
-            <ListItemIcon>
-              <AssessmentIcon color="primary" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Total Hours"
-              secondary="Total number of hours worked across all labor"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <PieChartIcon color="secondary" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Total Cost"
-              secondary="Total cost of all labor (hours × hourly rates)"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <GaugeIcon color="success" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Average Hourly Rate"
-              secondary="Average hourly wage across all workers"
-            />
-          </ListItem>
-        </List>
-
-        {/* Recent Tasks */}
-        <Typography variant="h6" fontWeight="600" sx={{ mb: 2, mt: 3 }}>
-          📋 Recent Tasks
-        </Typography>
-        <List dense>
-          <ListItem>
-            <ListItemIcon>
-              <BarChartIcon color="primary" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Task Name"
-              secondary="The name of the construction task"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <AssessmentIcon color="secondary" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Project & Progress"
-              secondary="Which project the task belongs to and its completion percentage"
-            />
-          </ListItem>
-        </List>
-
-        <Alert severity="info" sx={{ mt: 3 }}>
-          <Typography variant="body2">
-            <strong>💡 Tip:</strong> Use these charts to track task progress,
-            manage labor resources, and identify workforce distribution patterns
-            across your construction projects.
-          </Typography>
-        </Alert>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={() => setTasksLaborHelpOpen(false)} color="primary">
-          Got it!
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
-
-  // Budget & Resources Help Dialog Component
-  const BudgetResourcesHelpDialog = () => (
-    <Dialog
-      open={budgetResourcesHelpOpen}
-      onClose={() => setBudgetResourcesHelpOpen(false)}
+      open={revenueHelpOpen}
+      onClose={() => setRevenueHelpOpen(false)}
       maxWidth="md"
       fullWidth
     >
@@ -730,538 +356,24 @@ const Analytics = () => {
         <Box display="flex" alignItems="center" gap={1}>
           <PieChartIcon color="primary" />
           <Typography variant="h6" fontWeight="bold">
-            Budget & Resources Tab - Data Explanation
+            Revenue Tab - Data Explanation
           </Typography>
         </Box>
       </DialogTitle>
       <DialogContent>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          The Budget & Resources tab shows budget analysis, resource allocation,
-          and financial metrics. Here's how to understand what you're seeing:
+          The Revenue tab shows revenue trends, top performing events, and
+          commission analysis.
         </Typography>
-
-        {/* Budget Overview */}
-        <Typography variant="h6" fontWeight="600" sx={{ mb: 2, mt: 3 }}>
-          💰 Budget Overview
-        </Typography>
-        <List dense>
-          <ListItem>
-            <ListItemIcon>
-              <PieChartIcon color="primary" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Total Budgeted"
-              secondary="Total amount allocated for all projects and resources"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <AssessmentIcon color="secondary" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Total Actual"
-              secondary="Total amount actually spent across all projects"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <TrendingUp color="success" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Variance"
-              secondary="Difference between budgeted and actual costs (Budgeted - Actual)"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <GaugeIcon color="warning" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Utilization"
-              secondary="Percentage of budget that has been used (Actual ÷ Budgeted × 100)"
-            />
-          </ListItem>
-        </List>
-
-        {/* Budget by Category */}
-        <Typography variant="h6" fontWeight="600" sx={{ mb: 2, mt: 3 }}>
-          📊 Budget by Category
-        </Typography>
-        <List dense>
-          <ListItem>
-            <ListItemIcon>
-              <Chip label="Materials" color="primary" size="small" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Materials"
-              secondary="Budget allocated for construction materials (cement, steel, etc.)"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <Chip label="Labor" color="secondary" size="small" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Labor"
-              secondary="Budget allocated for workforce costs and wages"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <Chip label="Equipment" color="success" size="small" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Equipment"
-              secondary="Budget allocated for equipment rental and maintenance"
-            />
-          </ListItem>
-        </List>
-
-        {/* Project Resource Allocation */}
-        <Typography variant="h6" fontWeight="600" sx={{ mb: 2, mt: 3 }}>
-          🏗️ Project Resource Allocation
-        </Typography>
-        <List dense>
-          <ListItem>
-            <ListItemIcon>
-              <MapIcon color="primary" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Project Name"
-              secondary="Name of the construction project"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <AssessmentIcon color="secondary" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Status & Progress"
-              secondary="Current project status and completion percentage"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <GaugeIcon color="success" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Resource Counts"
-              secondary="Number of materials, labor, and equipment assigned to each project"
-            />
-          </ListItem>
-        </List>
-
         <Alert severity="info" sx={{ mt: 3 }}>
           <Typography variant="body2">
-            <strong>💡 Tip:</strong> Use these metrics to track budget
-            performance, identify cost overruns, and ensure proper resource
-            allocation across your construction projects.
+            <strong>💡 Tip:</strong> Use these charts to track revenue
+            performance and identify top-performing events and organizers.
           </Typography>
         </Alert>
       </DialogContent>
       <DialogActions>
-        <Button
-          onClick={() => setBudgetResourcesHelpOpen(false)}
-          color="primary"
-        >
-          Got it!
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
-
-  // Performance Help Dialog Component
-  const PerformanceHelpDialog = () => (
-    <Dialog
-      open={performanceHelpOpen}
-      onClose={() => setPerformanceHelpOpen(false)}
-      maxWidth="md"
-      fullWidth
-    >
-      <DialogTitle>
-        <Box display="flex" alignItems="center" gap={1}>
-          <Timeline color="primary" />
-          <Typography variant="h6" fontWeight="bold">
-            Performance Tab - Data Explanation
-          </Typography>
-        </Box>
-      </DialogTitle>
-      <DialogContent>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          The Performance tab shows task completion rates, material utilization,
-          and project performance indicators. Here's how to understand what
-          you're seeing:
-        </Typography>
-
-        {/* Performance Overview */}
-        <Typography variant="h6" fontWeight="600" sx={{ mb: 2, mt: 3 }}>
-          📊 Performance Overview
-        </Typography>
-        <List dense>
-          <ListItem>
-            <ListItemIcon>
-              <AssessmentIcon color="primary" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Task Completion Rate"
-              secondary="Percentage of tasks that have been completed across all projects"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <TrendingUp color="success" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Completed Tasks"
-              secondary="Total number of tasks that have been finished"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <GaugeIcon color="warning" />
-            </ListItemIcon>
-            <ListItemText
-              primary="In Progress Tasks"
-              secondary="Total number of tasks currently being worked on"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <InfoIcon color="error" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Projects at Risk"
-              secondary="Number of projects that may be behind schedule or over budget"
-            />
-          </ListItem>
-        </List>
-
-        {/* Material Utilization */}
-        <Typography variant="h6" fontWeight="600" sx={{ mb: 2, mt: 3 }}>
-          🏗️ Material Utilization
-        </Typography>
-        <List dense>
-          <ListItem>
-            <ListItemIcon>
-              <PieChartIcon color="primary" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Total Required"
-              secondary="Total amount of materials needed across all projects"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <AssessmentIcon color="secondary" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Total Used"
-              secondary="Total amount of materials actually consumed"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <GaugeIcon color="success" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Utilization Percentage"
-              secondary="Percentage of materials that have been used (Used ÷ Required × 100)"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <TrendingUp color="warning" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Total Cost"
-              secondary="Total cost of all materials budgeted for projects"
-            />
-          </ListItem>
-        </List>
-
-        {/* Equipment & Cost Summary */}
-        <Typography variant="h6" fontWeight="600" sx={{ mb: 2, mt: 3 }}>
-          🔧 Equipment & Cost Summary
-        </Typography>
-        <List dense>
-          <ListItem>
-            <ListItemIcon>
-              <GaugeIcon color="primary" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Total Equipment"
-              secondary="Total number of equipment items in your inventory"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <TrendingUp color="success" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Available Equipment"
-              secondary="Number of equipment items currently available for use"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <PieChartIcon color="warning" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Daily Rental Cost"
-              secondary="Total daily cost for all equipment rentals"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <AssessmentIcon color="error" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Overdue Tasks"
-              secondary="Number of tasks that are past their due date"
-            />
-          </ListItem>
-        </List>
-
-        <Alert severity="info" sx={{ mt: 3 }}>
-          <Typography variant="body2">
-            <strong>💡 Tip:</strong> Use these metrics to track project
-            performance, identify bottlenecks, and ensure efficient resource
-            utilization across your construction projects.
-          </Typography>
-        </Alert>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={() => setPerformanceHelpOpen(false)} color="primary">
-          Got it!
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
-
-  // Equipment & Materials Help Dialog Component
-  const EquipmentMaterialsHelpDialog = () => (
-    <Dialog
-      open={equipmentMaterialsHelpOpen}
-      onClose={() => setEquipmentMaterialsHelpOpen(false)}
-      maxWidth="md"
-      fullWidth
-    >
-      <DialogTitle>
-        <Box display="flex" alignItems="center" gap={1}>
-          <GaugeIcon color="primary" />
-          <Typography variant="h6" fontWeight="bold">
-            Equipment & Materials Tab - Data Explanation
-          </Typography>
-        </Box>
-      </DialogTitle>
-      <DialogContent>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          The Equipment & Materials tab shows equipment availability, material
-          utilization, and resource management. Here's how to understand what
-          you're seeing:
-        </Typography>
-
-        {/* Equipment Availability */}
-        <Typography variant="h6" fontWeight="600" sx={{ mb: 2, mt: 3 }}>
-          🔧 Equipment Availability
-        </Typography>
-        <List dense>
-          <ListItem>
-            <ListItemIcon>
-              <Chip label="Available" color="success" size="small" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Available Equipment"
-              secondary="Equipment items that are currently free and ready for use"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <Chip label="Unavailable" color="error" size="small" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Unavailable Equipment"
-              secondary="Equipment items that are currently in use or under maintenance"
-            />
-          </ListItem>
-        </List>
-
-        {/* Labor Status Distribution */}
-        <Typography variant="h6" fontWeight="600" sx={{ mb: 2, mt: 3 }}>
-          👷 Labor Status Distribution
-        </Typography>
-        <List dense>
-          <ListItem>
-            <ListItemIcon>
-              <Chip label="Active" color="success" size="small" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Active Workers"
-              secondary="Workers currently assigned to projects and working"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <Chip label="Completed" color="info" size="small" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Completed Workers"
-              secondary="Workers who have finished their assigned tasks"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <Chip label="On Leave" color="warning" size="small" />
-            </ListItemIcon>
-            <ListItemText
-              primary="On Leave Workers"
-              secondary="Workers who are temporarily unavailable (vacation, sick leave, etc.)"
-            />
-          </ListItem>
-        </List>
-
-        {/* Material Summary */}
-        <Typography variant="h6" fontWeight="600" sx={{ mb: 2, mt: 3 }}>
-          🏗️ Material Summary
-        </Typography>
-        <List dense>
-          <ListItem>
-            <ListItemIcon>
-              <PieChartIcon color="primary" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Total Required"
-              secondary="Total amount of materials needed across all projects"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <AssessmentIcon color="secondary" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Total Used"
-              secondary="Total amount of materials actually consumed"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <GaugeIcon color="success" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Utilization Percentage"
-              secondary="Percentage of materials that have been used (Used ÷ Required × 100)"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <TrendingUp color="warning" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Total Cost"
-              secondary="Total cost of all materials budgeted for projects"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <InfoIcon color="error" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Total Spent"
-              secondary="Total amount actually spent on materials"
-            />
-          </ListItem>
-        </List>
-
-        {/* Equipment Summary */}
-        <Typography variant="h6" fontWeight="600" sx={{ mb: 2, mt: 3 }}>
-          🔧 Equipment Summary
-        </Typography>
-        <List dense>
-          <ListItem>
-            <ListItemIcon>
-              <TrendingUp color="success" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Available Equipment"
-              secondary="Number of equipment items currently available for use"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <GaugeIcon color="primary" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Total Equipment"
-              secondary="Total number of equipment items in your inventory"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <PieChartIcon color="warning" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Daily Rental Cost"
-              secondary="Total daily cost for all equipment rentals"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <AssessmentIcon color="info" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Equipment Utilization"
-              secondary="Percentage of equipment that is currently available (Available ÷ Total × 100)"
-            />
-          </ListItem>
-        </List>
-
-        {/* Issues Summary */}
-        <Typography variant="h6" fontWeight="600" sx={{ mb: 2, mt: 3 }}>
-          ⚠️ Issues Summary
-        </Typography>
-        <List dense>
-          <ListItem>
-            <ListItemIcon>
-              <Chip label="Open" color="error" size="small" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Open Issues"
-              secondary="Issues that have been reported but not yet resolved"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <Chip label="Resolved" color="success" size="small" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Resolved Issues"
-              secondary="Issues that have been successfully resolved"
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <Chip label="In Review" color="warning" size="small" />
-            </ListItemIcon>
-            <ListItemText
-              primary="In Review Issues"
-              secondary="Issues that are currently being investigated or reviewed"
-            />
-          </ListItem>
-        </List>
-
-        <Alert severity="info" sx={{ mt: 3 }}>
-          <Typography variant="body2">
-            <strong>💡 Tip:</strong> Use these metrics to track resource
-            utilization, identify equipment availability issues, and monitor
-            material consumption patterns across your construction projects.
-          </Typography>
-        </Alert>
-      </DialogContent>
-      <DialogActions>
-        <Button
-          onClick={() => setEquipmentMaterialsHelpOpen(false)}
-          color="primary"
-        >
+        <Button onClick={() => setRevenueHelpOpen(false)} color="primary">
           Got it!
         </Button>
       </DialogActions>
@@ -1344,77 +456,59 @@ const Analytics = () => {
   const CardItem = (props) => {
     const getCardStyle = (title) => {
       switch (title) {
-        case "Total Projects":
+        case "Total Events":
           return {
-            icon: <MapIcon sx={{ fontSize: 40, color: "#1976d2" }} />,
-            bgColor: "linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%)",
-            borderColor: "#1976d2",
-            textColor: "#1976d2",
-            iconBg: "rgba(25, 118, 210, 0.1)",
+            icon: <MapIcon sx={{ fontSize: 48, color: "#667eea" }} />,
+            bgColor: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+            borderColor: "#667eea",
+            textColor: "#ffffff",
+            iconBg: "rgba(255, 255, 255, 0.2)",
+            shadowColor: "rgba(102, 126, 234, 0.3)",
           };
-        case "Total Tasks":
+        case "Approved Events":
           return {
-            icon: <BarChartIcon sx={{ fontSize: 40, color: "#7b1fa2" }} />,
-            bgColor: "linear-gradient(135deg, #F3E5F5 0%, #E1BEE7 100%)",
-            borderColor: "#7b1fa2",
-            textColor: "#7b1fa2",
-            iconBg: "rgba(123, 31, 162, 0.1)",
+            icon: <BarChartIcon sx={{ fontSize: 48, color: "#4caf50" }} />,
+            bgColor: "linear-gradient(135deg, #4caf50 0%, #45a049 100%)",
+            borderColor: "#4caf50",
+            textColor: "#ffffff",
+            iconBg: "rgba(255, 255, 255, 0.2)",
+            shadowColor: "rgba(76, 175, 80, 0.3)",
           };
-        case "Total Labor":
+        case "Completed Events":
           return {
-            icon: <PeopleIcon sx={{ fontSize: 40, color: "#388e3c" }} />,
-            bgColor: "linear-gradient(135deg, #E8F5E8 0%, #C8E6C9 100%)",
-            borderColor: "#388e3c",
-            textColor: "#388e3c",
-            iconBg: "rgba(56, 142, 60, 0.1)",
+            icon: <PeopleIcon sx={{ fontSize: 48, color: "#2196f3" }} />,
+            bgColor: "linear-gradient(135deg, #2196f3 0%, #1976d2 100%)",
+            borderColor: "#2196f3",
+            textColor: "#ffffff",
+            iconBg: "rgba(255, 255, 255, 0.2)",
+            shadowColor: "rgba(33, 150, 243, 0.3)",
           };
-        case "Total Equipment":
+        case "Pending Events":
           return {
-            icon: <GaugeIcon sx={{ fontSize: 40, color: "#f57c00" }} />,
-            bgColor: "linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%)",
-            borderColor: "#f57c00",
-            textColor: "#f57c00",
-            iconBg: "rgba(245, 124, 0, 0.1)",
+            icon: <AssessmentIcon sx={{ fontSize: 48, color: "#ff9800" }} />,
+            bgColor: "linear-gradient(135deg, #ff9800 0%, #f57c00 100%)",
+            borderColor: "#ff9800",
+            textColor: "#ffffff",
+            iconBg: "rgba(255, 255, 255, 0.2)",
+            shadowColor: "rgba(255, 152, 0, 0.3)",
           };
-        case "Total Materials":
+        case "Total Revenue":
           return {
-            icon: <AssessmentIcon sx={{ fontSize: 40, color: "#d32f2f" }} />,
-            bgColor: "linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%)",
-            borderColor: "#d32f2f",
-            textColor: "#d32f2f",
-            iconBg: "rgba(211, 47, 47, 0.1)",
-          };
-        case "Total Issues":
-          return {
-            icon: <InfoIcon sx={{ fontSize: 40, color: "#9c27b0" }} />,
-            bgColor: "linear-gradient(135deg, #F3E5F5 0%, #E1BEE7 100%)",
+            icon: <TrendingUp sx={{ fontSize: 48, color: "#9c27b0" }} />,
+            bgColor: "linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%)",
             borderColor: "#9c27b0",
-            textColor: "#9c27b0",
-            iconBg: "rgba(156, 39, 176, 0.1)",
-          };
-        case "Task Completion":
-          return {
-            icon: <TrendingUp sx={{ fontSize: 40, color: "#2e7d32" }} />,
-            bgColor: "linear-gradient(135deg, #E8F5E8 0%, #C8E6C9 100%)",
-            borderColor: "#2e7d32",
-            textColor: "#2e7d32",
-            iconBg: "rgba(46, 125, 50, 0.1)",
-          };
-        case "Overdue Tasks":
-          return {
-            icon: <Timeline sx={{ fontSize: 40, color: "#f44336" }} />,
-            bgColor: "linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%)",
-            borderColor: "#f44336",
-            textColor: "#f44336",
-            iconBg: "rgba(244, 67, 54, 0.1)",
+            textColor: "#ffffff",
+            iconBg: "rgba(255, 255, 255, 0.2)",
+            shadowColor: "rgba(156, 39, 176, 0.3)",
           };
         default:
           return {
-            icon: <AnalyticsIcon sx={{ fontSize: 40, color: "#666" }} />,
-            bgColor: "linear-gradient(135deg, #F5F5F5 0%, #EEEEEE 100%)",
+            icon: <AnalyticsIcon sx={{ fontSize: 48, color: "#666" }} />,
+            bgColor: "linear-gradient(135deg, #666 0%, #555 100%)",
             borderColor: "#666",
-            textColor: "#666",
-            iconBg: "rgba(102, 102, 102, 0.1)",
+            textColor: "#ffffff",
+            iconBg: "rgba(255, 255, 255, 0.2)",
+            shadowColor: "rgba(102, 102, 102, 0.3)",
           };
       }
     };
@@ -1423,18 +517,23 @@ const Analytics = () => {
     const style = getCardStyle(title);
 
     return (
-      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+      <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
         <Card
           sx={{
-            borderRadius: "16px",
-            boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+            borderRadius: "24px",
+            boxShadow: `0 12px 40px ${style.shadowColor}`,
             background: style.bgColor,
-            border: `1px solid ${style.borderColor}20`,
-            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+            border: `1px solid ${style.borderColor}40`,
+            transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
             "&:hover": {
-              transform: "translateY(-8px)",
-              boxShadow: "0 8px 30px rgba(0,0,0,0.15)",
-              borderColor: style.borderColor,
+              transform: "translateY(-8px) scale(1.03)",
+              boxShadow: `0 20px 60px ${style.shadowColor}`,
+              "& .card-icon": {
+                transform: "scale(1.1) rotate(5deg)",
+              },
+              "& .card-value": {
+                transform: "scale(1.05)",
+              },
             },
             height: "100%",
             display: "flex",
@@ -1448,55 +547,67 @@ const Analytics = () => {
               left: 0,
               right: 0,
               height: "4px",
-              background: `linear-gradient(90deg, ${style.borderColor}, ${style.borderColor}80)`,
+              background: `linear-gradient(90deg, ${style.borderColor}, ${style.borderColor}80, ${style.borderColor})`,
+            },
+            "&::after": {
+              content: '""',
+              position: "absolute",
+              top: -60,
+              right: -60,
+              width: 120,
+              height: 120,
+              borderRadius: "50%",
+              background: `radial-gradient(circle, rgba(255,255,255,0.1), transparent)`,
+              transition: "all 0.3s ease",
+            },
+            "&:hover::after": {
+              transform: "scale(1.2)",
+              opacity: 0.6,
             },
           }}
         >
           <CardContent
             sx={{
-              p: 3,
+              p: 4,
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
               textAlign: "center",
               flex: 1,
               position: "relative",
+              zIndex: 1,
             }}
           >
             <Box
+              className="card-icon"
               sx={{
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                mb: 2,
-                width: 80,
-                height: 80,
+                mb: 3,
+                width: 100,
+                height: 100,
                 borderRadius: "50%",
                 backgroundColor: style.iconBg,
-                border: `2px solid ${style.borderColor}30`,
-                transition: "all 0.3s ease",
-                "&:hover": {
-                  transform: "scale(1.1)",
-                  backgroundColor: style.borderColor,
-                  "& .MuiSvgIcon-root": {
-                    color: "white",
-                  },
-                },
+                border: `2px solid rgba(255, 255, 255, 0.3)`,
+                transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+                boxShadow: "0 8px 20px rgba(0,0,0,0.1)",
+                backdropFilter: "blur(10px)",
               }}
             >
               {style.icon}
             </Box>
             <Typography
-              variant="h3"
-              fontWeight="800"
+              className="card-value"
+              variant="h2"
+              fontWeight="900"
               sx={{
                 color: style.textColor,
-                mb: 1,
-                background: `linear-gradient(135deg, ${style.textColor}, ${style.textColor}80)`,
-                backgroundClip: "text",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                textShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                mb: 2,
+                textShadow: "0 4px 8px rgba(0,0,0,0.2)",
+                transition: "all 0.3s ease",
+                fontSize: { xs: "2.2rem", sm: "2.8rem", md: "3.2rem" },
+                letterSpacing: "-0.02em",
               }}
             >
               {value?.toLocaleString() || 0}
@@ -1506,9 +617,13 @@ const Analytics = () => {
               fontWeight="600"
               sx={{
                 color: style.textColor,
-                opacity: 0.8,
-                fontSize: "0.9rem",
-                lineHeight: 1.2,
+                opacity: 0.95,
+                fontSize: "1.1rem",
+                lineHeight: 1.3,
+                textTransform: "uppercase",
+                letterSpacing: "0.8px",
+                transition: "all 0.3s ease",
+                textShadow: "0 2px 4px rgba(0,0,0,0.1)",
               }}
             >
               {title}
@@ -1529,7 +644,7 @@ const Analytics = () => {
         sx={{ mb: 3 }}
       >
         <Typography variant="h5" fontWeight="bold" color="text.primary">
-          Construction Overview
+          Event Management Overview
         </Typography>
         <IconButton
           onClick={() => setOverviewHelpOpen(true)}
@@ -1567,254 +682,30 @@ const Analytics = () => {
       {/* Data Content */}
       {dataLoaded && (
         <>
-          {/* Key Metrics Cards - Same as Home.jsx */}
+          {/* Key Metrics Cards */}
           <Grid container spacing={3}>
             <CardItem
-              title="Total Projects"
-              value={analyticsData.overview?.totalProjects || 0}
+              title="Total Events"
+              value={analyticsData.overview?.totalEvents || 0}
             />
             <CardItem
-              title="Total Tasks"
-              value={analyticsData.overview?.totalTasks || 0}
+              title="Approved Events"
+              value={analyticsData.overview?.approvedEvents || 0}
             />
             <CardItem
-              title="Total Labor"
-              value={analyticsData.overview?.totalLabor || 0}
+              title="Completed Events"
+              value={analyticsData.overview?.completedEvents || 0}
             />
             <CardItem
-              title="Total Equipment"
-              value={analyticsData.overview?.totalEquipment || 0}
+              title="Pending Events"
+              value={analyticsData.overview?.pendingEvents || 0}
             />
             <CardItem
-              title="Total Materials"
-              value={analyticsData.overview?.totalMaterials || 0}
+              title="Total Revenue"
+              value={`KSh ${parseFloat(
+                analyticsData.overview?.totalRevenue || 0
+              ).toLocaleString()}`}
             />
-            <CardItem
-              title="Total Issues"
-              value={analyticsData.overview?.totalIssues || 0}
-            />
-            <CardItem
-              title="Task Completion"
-              value={`${analyticsData.performance?.taskCompletionRate || 0}%`}
-            />
-            <CardItem
-              title="Overdue Tasks"
-              value={analyticsData.overview?.overdueTasks || 0}
-            />
-          </Grid>
-
-          {/* Quick Stats - 4 columns with 2 stacked vertically each */}
-          <Grid container spacing={3} sx={{ mt: 3 }}>
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-              <Card
-                sx={{
-                  borderRadius: 3,
-                  boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
-                  transition: "all 0.3s ease",
-                  "&:hover": {
-                    boxShadow: "0 8px 30px rgba(0,0,0,0.12)",
-                    transform: "translateY(-2px)",
-                  },
-                  height: 280,
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-              >
-                <CardContent
-                  sx={{
-                    p: 3,
-                    flex: 1,
-                    display: "flex",
-                    flexDirection: "column",
-                  }}
-                >
-                  <Typography variant="h6" gutterBottom fontWeight="600">
-                    Project Metrics
-                  </Typography>
-                  <Stack spacing={2} sx={{ flex: 1 }}>
-                    <Box
-                      display="flex"
-                      justifyContent="space-between"
-                      alignItems="center"
-                      p={2}
-                      sx={{
-                        backgroundColor: "rgba(25, 118, 210, 0.05)",
-                        borderRadius: 2,
-                        border: "1px solid rgba(25, 118, 210, 0.1)",
-                      }}
-                    >
-                      <Typography fontWeight="500">Average Progress</Typography>
-                      <Chip
-                        label={`${parseFloat(
-                          analyticsData.projects?.progress?.avgProgress || 0
-                        ).toFixed(1)}%`}
-                        color="primary"
-                      />
-                    </Box>
-                    <Box
-                      display="flex"
-                      justifyContent="space-between"
-                      alignItems="center"
-                      p={2}
-                      sx={{
-                        backgroundColor: "rgba(156, 39, 176, 0.05)",
-                        borderRadius: 2,
-                        border: "1px solid rgba(156, 39, 176, 0.1)",
-                      }}
-                    >
-                      <Typography fontWeight="500">
-                        Budget Utilization
-                      </Typography>
-                      <Chip
-                        label={`${
-                          analyticsData.budget?.utilizationPercent || 0
-                        }%`}
-                        color="secondary"
-                      />
-                    </Box>
-                  </Stack>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-              <Card
-                sx={{
-                  borderRadius: 3,
-                  boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
-                  transition: "all 0.3s ease",
-                  "&:hover": {
-                    boxShadow: "0 8px 30px rgba(0,0,0,0.12)",
-                    transform: "translateY(-2px)",
-                  },
-                  height: 280,
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-              >
-                <CardContent
-                  sx={{
-                    p: 3,
-                    flex: 1,
-                    display: "flex",
-                    flexDirection: "column",
-                  }}
-                >
-                  <Typography variant="h6" gutterBottom fontWeight="600">
-                    Resource Analysis
-                  </Typography>
-                  <Stack spacing={2} sx={{ flex: 1 }}>
-                    <Box
-                      display="flex"
-                      justifyContent="space-between"
-                      alignItems="center"
-                      p={2}
-                      sx={{
-                        backgroundColor: "rgba(76, 175, 80, 0.05)",
-                        borderRadius: 2,
-                        border: "1px solid rgba(76, 175, 80, 0.1)",
-                      }}
-                    >
-                      <Typography fontWeight="500">
-                        Material Utilization
-                      </Typography>
-                      <Chip
-                        label={`${
-                          analyticsData.materials?.summary
-                            ?.utilizationPercent || 0
-                        }%`}
-                        color="success"
-                      />
-                    </Box>
-                    <Box
-                      display="flex"
-                      justifyContent="space-between"
-                      alignItems="center"
-                      p={2}
-                      sx={{
-                        backgroundColor: "rgba(0, 188, 212, 0.05)",
-                        borderRadius: 2,
-                        border: "1px solid rgba(0, 188, 212, 0.1)",
-                      }}
-                    >
-                      <Typography fontWeight="500">Total Equipment</Typography>
-                      <Chip
-                        label={`${analyticsData.overview?.totalEquipment || 0}`}
-                        color="info"
-                      />
-                    </Box>
-                  </Stack>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-              <Card
-                sx={{
-                  borderRadius: 3,
-                  boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
-                  transition: "all 0.3s ease",
-                  "&:hover": {
-                    boxShadow: "0 8px 30px rgba(0,0,0,0.12)",
-                    transform: "translateY(-2px)",
-                  },
-                  height: 280,
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-              >
-                <CardContent
-                  sx={{
-                    p: 3,
-                    flex: 1,
-                    display: "flex",
-                    flexDirection: "column",
-                  }}
-                >
-                  <Typography variant="h6" gutterBottom fontWeight="600">
-                    Performance Insights
-                  </Typography>
-                  <Stack spacing={2} sx={{ flex: 1 }}>
-                    <Box
-                      display="flex"
-                      justifyContent="space-between"
-                      alignItems="center"
-                      p={2}
-                      sx={{
-                        backgroundColor: "rgba(25, 118, 210, 0.05)",
-                        borderRadius: 2,
-                        border: "1px solid rgba(25, 118, 210, 0.1)",
-                      }}
-                    >
-                      <Typography fontWeight="500">Top Engineer</Typography>
-                      <Chip
-                        label={analyticsData.engineers?.top?.name || "N/A"}
-                        color="primary"
-                      />
-                    </Box>
-                    <Box
-                      display="flex"
-                      justifyContent="space-between"
-                      alignItems="center"
-                      p={2}
-                      sx={{
-                        backgroundColor: "rgba(255, 152, 0, 0.05)",
-                        borderRadius: 2,
-                        border: "1px solid rgba(255, 152, 0, 0.1)",
-                      }}
-                    >
-                      <Typography fontWeight="500">Projects at Risk</Typography>
-                      <Chip
-                        label={`${
-                          analyticsData.performance?.projectsAtRisk || 0
-                        }`}
-                        color="warning"
-                      />
-                    </Box>
-                  </Stack>
-                </CardContent>
-              </Card>
-            </Grid>
           </Grid>
         </>
       )}
@@ -1845,7 +736,7 @@ const Analytics = () => {
     </Box>
   );
 
-  const renderProjects = () => (
+  const renderEvents = () => (
     <Box>
       {/* Header */}
       <Box
@@ -1858,14 +749,14 @@ const Analytics = () => {
       >
         <Box>
           <Typography variant="h6" fontWeight="600" color="text.primary">
-            Project Status & Distribution
+            Event Status & Distribution
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Project status breakdown and construction type distribution
+            Event status breakdown and category distribution
           </Typography>
         </Box>
         <IconButton
-          onClick={() => setProjectsHelpOpen(true)}
+          onClick={() => setEventsHelpOpen(true)}
           color="primary"
           sx={{
             backgroundColor: "rgba(25, 118, 210, 0.1)",
@@ -1879,7 +770,92 @@ const Analytics = () => {
         </IconButton>
       </Box>
 
-      {/* Loading State for Projects */}
+      {/* Event Summary Cards */}
+      {dataLoaded && (
+        <Grid container spacing={3} sx={{ mb: 3 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card
+              sx={{
+                p: 3,
+                textAlign: "center",
+                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                color: "white",
+                borderRadius: 2,
+                boxShadow: "0 8px 32px rgba(102, 126, 234, 0.3)",
+              }}
+            >
+              <Typography variant="h4" fontWeight="bold" sx={{ mb: 1 }}>
+                {analyticsData.events?.totalEvents || 0}
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                Total Events
+              </Typography>
+            </Card>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card
+              sx={{
+                p: 3,
+                textAlign: "center",
+                background: "linear-gradient(135deg, #4caf50 0%, #45a049 100%)",
+                color: "white",
+                borderRadius: 2,
+                boxShadow: "0 8px 32px rgba(76, 175, 80, 0.3)",
+              }}
+            >
+              <Typography variant="h4" fontWeight="bold" sx={{ mb: 1 }}>
+                {analyticsData.events?.totalTicketsSold || 0}
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                Total Tickets Sold
+              </Typography>
+            </Card>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card
+              sx={{
+                p: 3,
+                textAlign: "center",
+                background: "linear-gradient(135deg, #2196f3 0%, #1976d2 100%)",
+                color: "white",
+                borderRadius: 2,
+                boxShadow: "0 8px 32px rgba(33, 150, 243, 0.3)",
+              }}
+            >
+              <Typography variant="h4" fontWeight="bold" sx={{ mb: 1 }}>
+                {analyticsData.events?.avgTicketsPerEvent || 0}
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                Avg Tickets per Event
+              </Typography>
+            </Card>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card
+              sx={{
+                p: 3,
+                textAlign: "center",
+                background: "linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%)",
+                color: "white",
+                borderRadius: 2,
+                boxShadow: "0 8px 32px rgba(156, 39, 176, 0.3)",
+              }}
+            >
+              <Typography variant="h4" fontWeight="bold" sx={{ mb: 1 }}>
+                KSh{" "}
+                {parseFloat(
+                  analyticsData.events?.totalRevenue || 0
+                ).toLocaleString()}
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                Total Revenue
+              </Typography>
+            </Card>
+          </Grid>
+        </Grid>
+      )}
+
+      {/* Loading State for Events */}
       {loading && !dataLoaded && (
         <Box
           display="flex"
@@ -1891,7 +867,7 @@ const Analytics = () => {
           <Box textAlign="center">
             <CircularProgress size={40} sx={{ mb: 2 }} />
             <Typography variant="body2" color="text.secondary">
-              Loading project data...
+              Loading event data...
             </Typography>
           </Box>
         </Box>
@@ -1901,17 +877,17 @@ const Analytics = () => {
       {dataLoaded && (
         <>
           <Grid container spacing={3}>
-            {/* Project Status Chart */}
+            {/* Event Status Chart */}
             <Grid size={{ xs: 12, md: 6 }}>
               <Card sx={{ p: 3, height: 400 }}>
                 <Typography variant="h6" gutterBottom fontWeight="600">
-                  Project Status Distribution
+                  Event Status Distribution
                 </Typography>
                 <ResponsiveContainer width="100%" height={300}>
-                  {(analyticsData.projects?.byStatus || []).length > 0 ? (
+                  {(analyticsData.events?.eventsByStatus || []).length > 0 ? (
                     <PieChart>
                       <Pie
-                        data={(analyticsData.projects?.byStatus || []).map(
+                        data={(analyticsData.events?.eventsByStatus || []).map(
                           (item) => ({
                             name: item.status,
                             value: parseInt(item.count) || 0,
@@ -1925,7 +901,7 @@ const Analytics = () => {
                         innerRadius="50%"
                         fill="#8884d8"
                       >
-                        {(analyticsData.projects?.byStatus || []).map(
+                        {(analyticsData.events?.eventsByStatus || []).map(
                           (entry, index) => (
                             <Cell
                               key={`cell-${index}`}
@@ -1934,7 +910,7 @@ const Analytics = () => {
                           )
                         )}
                       </Pie>
-                      <Tooltip formatter={(value) => [value, "Projects"]} />
+                      <Tooltip formatter={(value) => [value, "Events"]} />
                       <Legend />
                     </PieChart>
                   ) : (
@@ -1945,7 +921,7 @@ const Analytics = () => {
                       height="100%"
                     >
                       <Typography variant="body2" color="text.secondary">
-                        No project data available
+                        No event data available
                       </Typography>
                     </Box>
                   )}
@@ -1953,15 +929,15 @@ const Analytics = () => {
               </Card>
             </Grid>
 
-            {/* Construction Type Chart */}
+            {/* Event Category Chart */}
             <Grid size={{ xs: 12, md: 6 }}>
               <Card sx={{ p: 3, height: 400 }}>
                 <Typography variant="h6" gutterBottom fontWeight="600">
-                  Construction Type Distribution
+                  Event Category Distribution
                 </Typography>
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart
-                    data={(analyticsData.projects?.byType || []).map(
+                    data={(analyticsData.events?.eventsByCategory || []).map(
                       (item) => ({
                         ...item,
                         count: parseInt(item.count) || 0,
@@ -1969,154 +945,96 @@ const Analytics = () => {
                     )}
                   >
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="construction_type" />
+                    <XAxis dataKey="category" />
                     <YAxis />
-                    <Tooltip formatter={(value) => [value, "Projects"]} />
+                    <Tooltip formatter={(value) => [value, "Events"]} />
                     <Bar dataKey="count" fill="#f093fb" />
                   </BarChart>
                 </ResponsiveContainer>
               </Card>
             </Grid>
 
-            {/* Projects Timeline Bar Chart */}
-            <Grid size={{ xs: 12 }}>
-              <Card sx={{ p: 3, height: 400 }}>
-                <Box
-                  display="flex"
-                  justifyContent="space-between"
-                  alignItems="center"
-                  mb={2}
-                >
-                  <Typography variant="h6" fontWeight="600">
-                    Projects Starting by Date (
-                    {formatDateForDisplay(dateRange.startDate)} to{" "}
-                    {formatDateForDisplay(dateRange.endDate)})
-                  </Typography>
-
-                  {/* Date Filter Controls */}
-                  <Box display="flex" gap={2} alignItems="center">
-                    <TextField
-                      label="Start Date"
-                      type="date"
-                      value={dateRange.startDate}
-                      onChange={(e) =>
-                        setDateRange({
-                          ...dateRange,
-                          startDate: e.target.value,
-                        })
-                      }
-                      InputLabelProps={{ shrink: true }}
-                      size="small"
-                      sx={{ minWidth: 140 }}
-                    />
-                    <TextField
-                      label="End Date"
-                      type="date"
-                      value={dateRange.endDate}
-                      onChange={(e) =>
-                        setDateRange({ ...dateRange, endDate: e.target.value })
-                      }
-                      InputLabelProps={{ shrink: true }}
-                      size="small"
-                      sx={{ minWidth: 140 }}
-                    />
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      onClick={() => {
-                        const currentYear = new Date().getFullYear();
-                        setDateRange({
-                          startDate: new Date(currentYear, 0, 1)
-                            .toISOString()
-                            .split("T")[0],
-                          endDate: new Date(currentYear, 11, 31)
-                            .toISOString()
-                            .split("T")[0],
-                        });
-                      }}
-                      sx={{ minWidth: 80 }}
-                    >
-                      Reset
-                    </Button>
-                  </Box>
-                </Box>
-                <ResponsiveContainer width="100%" height={400}>
-                  {projectsByDate.length > 0 ? (
-                    <BarChart
-                      data={projectsByDate}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 40 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis
-                        dataKey="date"
-                        angle={-45}
-                        textAnchor="end"
-                        height={100}
-                        tick={{ fontSize: 12 }}
-                        stroke="#666"
-                      />
-                      <YAxis tick={{ fontSize: 12 }} stroke="#666" />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: "rgba(255, 255, 255, 0.95)",
-                          border: "1px solid #ccc",
-                          borderRadius: "8px",
-                          boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                        }}
-                        formatter={(value) => [value, "Projects"]}
-                      />
-                      <Legend />
-                      <Bar
-                        dataKey="total"
-                        fill="#667eea"
-                        name="Total Projects"
-                        radius={[4, 4, 0, 0]}
-                      />
-                    </BarChart>
-                  ) : (
-                    <Box
-                      display="flex"
-                      alignItems="center"
-                      justifyContent="center"
-                      height="100%"
-                    >
-                      <Typography variant="body2" color="text.secondary">
-                        No project data available for the selected date range
-                      </Typography>
-                    </Box>
-                  )}
-                </ResponsiveContainer>
-              </Card>
-            </Grid>
-
-            {/* Recent Projects */}
+            {/* Event Analytics Summary */}
             <Grid size={{ xs: 12 }}>
               <Card sx={{ p: 3 }}>
                 <Typography variant="h6" gutterBottom fontWeight="600">
-                  Recent Projects
+                  Event Analytics Summary
                 </Typography>
-                <List>
-                  {(analyticsData.projects?.recent || []).map((project) => (
-                    <ListItem key={project.id}>
-                      <ListItemIcon>
-                        <MapIcon color="primary" />
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={project.name}
-                        secondary={`Status: ${project.status} | Engineer: ${
-                          project.engineer?.name || "N/A"
-                        }`}
-                      />
-                      <Chip
-                        label={project.status}
-                        color={
-                          project.status === "completed" ? "success" : "primary"
-                        }
-                        size="small"
-                      />
-                    </ListItem>
-                  ))}
-                </List>
+                <Grid
+                  container
+                  spacing={0}
+                  sx={{ justifyContent: "space-between" }}
+                >
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <Box
+                      textAlign="center"
+                      sx={{
+                        p: 3,
+                        borderRight: {
+                          xs: "none",
+                          sm: "1px solid rgba(0,0,0,0.1)",
+                        },
+                        "&:last-child": {
+                          borderRight: "none",
+                        },
+                      }}
+                    >
+                      <Typography
+                        variant="h3"
+                        color="primary"
+                        fontWeight="bold"
+                        sx={{ mb: 1 }}
+                      >
+                        {analyticsData.events?.totalEvents || 0}
+                      </Typography>
+                      <Typography
+                        variant="body1"
+                        color="text.secondary"
+                        sx={{
+                          fontWeight: 500,
+                          fontSize: "0.95rem",
+                          lineHeight: 1.3,
+                        }}
+                      >
+                        Total Events
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <Box
+                      textAlign="center"
+                      sx={{
+                        p: 3,
+                        "&:last-child": {
+                          borderRight: "none",
+                        },
+                      }}
+                    >
+                      <Typography
+                        variant="h3"
+                        color="success.main"
+                        fontWeight="bold"
+                        sx={{ mb: 1 }}
+                      >
+                        KSh{" "}
+                        {parseFloat(
+                          analyticsData.events?.totalRevenue || 0
+                        ).toLocaleString()}
+                      </Typography>
+                      <Typography
+                        variant="body1"
+                        color="text.secondary"
+                        sx={{
+                          fontWeight: 500,
+                          fontSize: "0.95rem",
+                          lineHeight: 1.3,
+                        }}
+                      >
+                        Total Revenue
+                      </Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
               </Card>
             </Grid>
           </Grid>
@@ -2134,7 +1052,7 @@ const Analytics = () => {
         >
           <Box textAlign="center">
             <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
-              No project data available
+              No event data available
             </Typography>
             <Button
               variant="contained"
@@ -2209,7 +1127,7 @@ const Analytics = () => {
     );
   };
 
-  const renderTasksLabor = () => (
+  const renderRevenue = () => (
     <Box>
       {/* Header */}
       <Box
@@ -2222,14 +1140,14 @@ const Analytics = () => {
       >
         <Box>
           <Typography variant="h6" fontWeight="600" color="text.primary">
-            Tasks & Labor Management
+            Revenue Analytics
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Task status distribution and labor workforce analysis
+            Revenue trends, top events, and commission analysis
           </Typography>
         </Box>
         <IconButton
-          onClick={() => setTasksLaborHelpOpen(true)}
+          onClick={() => setRevenueHelpOpen(true)}
           color="primary"
           sx={{
             backgroundColor: "rgba(25, 118, 210, 0.1)",
@@ -2244,156 +1162,142 @@ const Analytics = () => {
       </Box>
 
       <Grid container spacing={3}>
-        {/* Task Status Chart - Full Width */}
+        {/* Revenue by Period Chart */}
         <Grid size={{ xs: 12 }}>
           <Card sx={{ p: 3, height: 400 }}>
             <Typography variant="h6" gutterBottom fontWeight="600">
-              Task Status Distribution
+              Revenue by Period
             </Typography>
-            <ResponsiveContainer width="100%" height={400}>
-              <BarChart
-                data={(analyticsData.tasks?.byStatus || []).map((item) => ({
-                  ...item,
-                  count: parseInt(item.count) || 0,
-                }))}
-                margin={{ top: 20, right: 30, left: 20, bottom: 40 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis
-                  dataKey="status"
-                  angle={-45}
-                  textAnchor="end"
-                  height={100}
-                  tick={{ fontSize: 12 }}
-                  stroke="#666"
-                />
-                <YAxis tick={{ fontSize: 12 }} stroke="#666" />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "rgba(255, 255, 255, 0.95)",
-                    border: "1px solid #ccc",
-                    borderRadius: "8px",
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                  }}
-                  formatter={(value) => [value, "Tasks"]}
-                />
-                <Legend />
-                <Bar
-                  dataKey="count"
-                  fill="#667eea"
-                  name="Tasks"
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
+            <ResponsiveContainer width="100%" height={300}>
+              {(analyticsData.revenue?.revenueByPeriod || []).length > 0 ? (
+                <BarChart
+                  data={(analyticsData.revenue?.revenueByPeriod || []).map(
+                    (item) => ({
+                      ...item,
+                      totalRevenue: parseFloat(item.totalRevenue) || 0,
+                      adminRevenue: parseFloat(item.adminRevenue) || 0,
+                      organizerRevenue: parseFloat(item.organizerRevenue) || 0,
+                      transactionCount: parseInt(item.transactionCount) || 0,
+                    })
+                  )}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 40 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis
+                    dataKey="period"
+                    tick={{ fontSize: 12 }}
+                    stroke="#666"
+                  />
+                  <YAxis tick={{ fontSize: 12 }} stroke="#666" />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "rgba(255, 255, 255, 0.95)",
+                      border: "1px solid #ccc",
+                      borderRadius: "8px",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                    }}
+                    formatter={(value, name) => [
+                      `KSh ${parseFloat(value).toLocaleString()}`,
+                      name === "totalRevenue"
+                        ? "Total Revenue"
+                        : name === "adminRevenue"
+                        ? "Admin Revenue"
+                        : name === "organizerRevenue"
+                        ? "Organizer Revenue"
+                        : name,
+                    ]}
+                  />
+                  <Legend />
+                  <Bar
+                    dataKey="organizerRevenue"
+                    fill="#43e97b"
+                    name="Your Revenue"
+                    radius={[4, 4, 0, 0]}
+                  />
+                  <Bar
+                    dataKey="adminRevenue"
+                    fill="#f093fb"
+                    name="Platform Revenue"
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              ) : (
+                <Box
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                  height="100%"
+                >
+                  <Typography variant="body2" color="text.secondary">
+                    No revenue data available
+                  </Typography>
+                </Box>
+              )}
             </ResponsiveContainer>
           </Card>
         </Grid>
 
-        {/* Labor Type Chart - Full Width Bar Chart */}
+        {/* Top Events by Revenue */}
         <Grid size={{ xs: 12 }}>
           <Card sx={{ p: 3, height: 400 }}>
             <Typography variant="h6" gutterBottom fontWeight="600">
-              Labor by Worker Type
+              Top Events by Revenue
             </Typography>
-            <ResponsiveContainer width="100%" height={400}>
-              <BarChart
-                data={(analyticsData.labor?.byType || []).map((item) => ({
-                  name: item.worker_type
-                    .replace("_", " ")
-                    .replace(/\b\w/g, (l) => l.toUpperCase()),
-                  count: parseInt(item.count) || 0,
-                }))}
-                margin={{ top: 20, right: 30, left: 20, bottom: 40 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis
-                  dataKey="name"
-                  angle={-45}
-                  textAnchor="end"
-                  height={100}
-                  tick={{ fontSize: 12 }}
-                  stroke="#666"
-                />
-                <YAxis tick={{ fontSize: 12 }} stroke="#666" />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "rgba(255, 255, 255, 0.95)",
-                    border: "1px solid #ccc",
-                    borderRadius: "8px",
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                  }}
-                  formatter={(value) => [value, "Workers"]}
-                />
-                <Legend />
-                <Bar
-                  dataKey="count"
-                  fill="#f093fb"
-                  name="Workers"
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
+            <ResponsiveContainer width="100%" height={300}>
+              {(analyticsData.revenue?.topEvents || []).length > 0 ? (
+                <BarChart
+                  data={(analyticsData.revenue?.topEvents || []).map(
+                    (item) => ({
+                      ...item,
+                      totalRevenue: parseFloat(item.totalRevenue) || 0,
+                      transactionCount: parseInt(item.transactionCount) || 0,
+                    })
+                  )}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 40 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis
+                    dataKey="event_name"
+                    angle={-45}
+                    textAnchor="end"
+                    height={100}
+                    tick={{ fontSize: 12 }}
+                    stroke="#666"
+                  />
+                  <YAxis tick={{ fontSize: 12 }} stroke="#666" />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "rgba(255, 255, 255, 0.95)",
+                      border: "1px solid #ccc",
+                      borderRadius: "8px",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                    }}
+                    formatter={(value) => [
+                      `KSh ${parseFloat(value).toLocaleString()}`,
+                      "Revenue",
+                    ]}
+                  />
+                  <Legend />
+                  <Bar
+                    dataKey="totalRevenue"
+                    fill="#667eea"
+                    name="Revenue"
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              ) : (
+                <Box
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                  height="100%"
+                >
+                  <Typography variant="body2" color="text.secondary">
+                    No top events data available
+                  </Typography>
+                </Box>
+              )}
             </ResponsiveContainer>
-          </Card>
-        </Grid>
-
-        {/* Labor Summary */}
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Card sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom fontWeight="600">
-              Labor Summary
-            </Typography>
-            <Stack spacing={2}>
-              <Box display="flex" justifyContent="space-between">
-                <Typography>Total Hours:</Typography>
-                <Typography fontWeight="bold">
-                  {analyticsData.labor?.summary?.totalHours || 0}
-                </Typography>
-              </Box>
-              <Box display="flex" justifyContent="space-between">
-                <Typography>Total Cost:</Typography>
-                <Typography fontWeight="bold">
-                  KSh{" "}
-                  {parseFloat(
-                    analyticsData.labor?.summary?.totalCost || 0
-                  ).toLocaleString()}
-                </Typography>
-              </Box>
-              <Box display="flex" justifyContent="space-between">
-                <Typography>Avg Hourly Rate:</Typography>
-                <Typography fontWeight="bold">
-                  KSh {analyticsData.labor?.summary?.avgHourlyRate || 0}
-                </Typography>
-              </Box>
-            </Stack>
-          </Card>
-        </Grid>
-
-        {/* Recent Tasks */}
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Card sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom fontWeight="600">
-              Recent Tasks
-            </Typography>
-            <List>
-              {(analyticsData.tasks?.recent || []).map((task) => (
-                <ListItem key={task.id}>
-                  <ListItemIcon>
-                    <BarChartIcon color="primary" />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={task.name}
-                    secondary={`Project: ${
-                      task.project?.name || "N/A"
-                    } | Progress: ${task.progress_percent}%`}
-                  />
-                  <Chip
-                    label={task.status}
-                    color={task.status === "completed" ? "success" : "primary"}
-                    size="small"
-                  />
-                </ListItem>
-              ))}
-            </List>
           </Card>
         </Grid>
       </Grid>
@@ -3295,15 +2199,9 @@ const Analytics = () => {
       case 0:
         return renderOverview();
       case 1:
-        return renderProjects();
+        return renderEvents();
       case 2:
-        return renderTasksLabor();
-      case 3:
-        return renderBudgetResources();
-      case 4:
-        return renderPerformance();
-      case 5:
-        return renderEquipmentMaterials();
+        return renderRevenue();
       default:
         return renderOverview();
     }
@@ -3339,8 +2237,52 @@ const Analytics = () => {
           WebkitTextFillColor: "transparent",
         }}
       >
-        Construction Management Dashboard
+        Organizer Dashboard
       </Typography>
+
+      {/* Date Range Selector */}
+      <Card
+        sx={{
+          mb: 3,
+          p: 3,
+          borderRadius: 2,
+          backgroundColor: "rgba(255, 255, 255, 0.9)",
+          border: "1px solid rgba(102, 126, 234, 0.1)",
+          boxShadow: "0 4px 20px rgba(102, 126, 234, 0.1)",
+        }}
+      >
+        <Typography variant="h6" gutterBottom fontWeight="600">
+          Filter by Date Range
+        </Typography>
+        <Grid container spacing={2} alignItems="center">
+          <Grid size={{ xs: 12, sm: 4 }}>
+            <TextField
+              label="Start Date"
+              type="date"
+              value={dateRange.startDate}
+              onChange={(e) => {
+                setDateRange({ ...dateRange, startDate: e.target.value });
+              }}
+              InputLabelProps={{ shrink: true }}
+              fullWidth
+              size="small"
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 4 }}>
+            <TextField
+              label="End Date"
+              type="date"
+              value={dateRange.endDate}
+              onChange={(e) => {
+                setDateRange({ ...dateRange, endDate: e.target.value });
+              }}
+              InputLabelProps={{ shrink: true }}
+              fullWidth
+              size="small"
+            />
+          </Grid>
+        </Grid>
+      </Card>
 
       <Card
         sx={{
@@ -3401,11 +2343,8 @@ const Analytics = () => {
 
       {/* Help Dialogs */}
       <OverviewHelpDialog />
-      <ProjectsHelpDialog />
-      <TasksLaborHelpDialog />
-      <BudgetResourcesHelpDialog />
-      <PerformanceHelpDialog />
-      <EquipmentMaterialsHelpDialog />
+      <EventsHelpDialog />
+      <RevenueHelpDialog />
     </Box>
   );
 };

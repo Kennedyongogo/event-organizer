@@ -36,6 +36,17 @@ import {
 import { useTheme } from "@mui/material/styles";
 import Swal from "sweetalert2";
 
+// Helper function to build proper image URLs
+const buildImageUrl = (imageUrl) => {
+  if (!imageUrl) return "";
+  if (imageUrl.startsWith("http")) return imageUrl;
+
+  // Use relative URLs - Vite proxy will handle routing to backend
+  if (imageUrl.startsWith("uploads/")) return `/${imageUrl}`;
+  if (imageUrl.startsWith("/uploads/")) return imageUrl;
+  return imageUrl;
+};
+
 const MyProfile = () => {
   const theme = useTheme();
   const [loading, setLoading] = useState(true);
@@ -93,11 +104,7 @@ const MyProfile = () => {
         setProfileData(data.data);
         setOriginalData(data.data);
         if (data.data.logo) {
-          setLogoPreview(
-            data.data.logo.startsWith("http")
-              ? data.data.logo
-              : `/${data.data.logo}`
-          );
+          setLogoPreview(buildImageUrl(data.data.logo));
         }
       } else {
         throw new Error(data.message);
@@ -142,13 +149,7 @@ const MyProfile = () => {
 
   const handleCancel = () => {
     setProfileData(originalData);
-    setLogoPreview(
-      originalData.logo
-        ? originalData.logo.startsWith("http")
-          ? originalData.logo
-          : `/${originalData.logo}`
-        : null
-    );
+    setLogoPreview(originalData.logo ? buildImageUrl(originalData.logo) : null);
     setLogoFile(null);
     setEditMode(false);
   };
