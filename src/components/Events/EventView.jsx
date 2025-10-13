@@ -293,6 +293,21 @@ const EventView = () => {
               </Button>
               <Button
                 variant="contained"
+                startIcon={<TicketIcon />}
+                onClick={() => navigate(`/events/${id}/tickets`)}
+                sx={{
+                  backgroundColor: "rgba(255, 255, 255, 0.2)",
+                  color: "white",
+                  border: "1px solid rgba(255, 255, 255, 0.3)",
+                  "&:hover": {
+                    backgroundColor: "rgba(255, 255, 255, 0.3)",
+                  },
+                }}
+              >
+                Edit Tickets
+              </Button>
+              <Button
+                variant="contained"
                 startIcon={<EditIcon />}
                 onClick={() => navigate(`/events/${id}/edit`)}
                 sx={{
@@ -721,8 +736,12 @@ const EventView = () => {
                         <Grid item xs={12} sm={6} md={4} key={index}>
                           <Card
                             sx={{
-                              background:
-                                "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                              background: event.image_url
+                                ? `linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.6)), url(http://localhost:4000${event.image_url})`
+                                : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                              backgroundSize: "cover",
+                              backgroundPosition: "center",
+                              backgroundRepeat: "no-repeat",
                               color: "white",
                               borderRadius: 3,
                               p: 2,
@@ -738,13 +757,25 @@ const EventView = () => {
                           >
                             <Typography
                               variant="h6"
-                              sx={{ fontWeight: 700, mb: 2 }}
+                              sx={{
+                                fontWeight: 700,
+                                mb: 2,
+                                textShadow: event.image_url
+                                  ? "2px 2px 4px rgba(0,0,0,0.8)"
+                                  : "none",
+                              }}
                             >
                               {ticket.name}
                             </Typography>
                             <Typography
                               variant="h4"
-                              sx={{ fontWeight: 800, mb: 2 }}
+                              sx={{
+                                fontWeight: 800,
+                                mb: 2,
+                                textShadow: event.image_url
+                                  ? "2px 2px 4px rgba(0,0,0,0.8)"
+                                  : "none",
+                              }}
                             >
                               KES {parseFloat(ticket.price)?.toLocaleString()}
                             </Typography>
@@ -763,7 +794,12 @@ const EventView = () => {
                                 <Typography variant="body2">Total:</Typography>
                                 <Typography
                                   variant="body2"
-                                  sx={{ fontWeight: 600 }}
+                                  sx={{
+                                    fontWeight: 600,
+                                    textShadow: event.image_url
+                                      ? "1px 1px 2px rgba(0,0,0,0.8)"
+                                      : "none",
+                                  }}
                                 >
                                   {ticket.total_quantity || 0}
                                 </Typography>
@@ -773,12 +809,24 @@ const EventView = () => {
                                 justifyContent="space-between"
                                 alignItems="center"
                               >
-                                <Typography variant="body2">
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    textShadow: event.image_url
+                                      ? "1px 1px 2px rgba(0,0,0,0.8)"
+                                      : "none",
+                                  }}
+                                >
                                   Available:
                                 </Typography>
                                 <Typography
                                   variant="body2"
-                                  sx={{ fontWeight: 600 }}
+                                  sx={{
+                                    fontWeight: 600,
+                                    textShadow: event.image_url
+                                      ? "1px 1px 2px rgba(0,0,0,0.8)"
+                                      : "none",
+                                  }}
                                 >
                                   {ticket.remaining_quantity || 0}
                                 </Typography>
@@ -788,10 +836,24 @@ const EventView = () => {
                                 justifyContent="space-between"
                                 alignItems="center"
                               >
-                                <Typography variant="body2">Sold:</Typography>
                                 <Typography
                                   variant="body2"
-                                  sx={{ fontWeight: 600 }}
+                                  sx={{
+                                    textShadow: event.image_url
+                                      ? "1px 1px 2px rgba(0,0,0,0.8)"
+                                      : "none",
+                                  }}
+                                >
+                                  Sold:
+                                </Typography>
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    fontWeight: 600,
+                                    textShadow: event.image_url
+                                      ? "1px 1px 2px rgba(0,0,0,0.8)"
+                                      : "none",
+                                  }}
                                 >
                                   {(ticket.total_quantity || 0) -
                                     (ticket.remaining_quantity || 0)}

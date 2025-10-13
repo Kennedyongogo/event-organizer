@@ -485,120 +485,100 @@ const EventEdit = () => {
                         ),
                       }}
                     />
-                    <Grid container spacing={2}>
-                      <Grid item xs={12} md={6}>
-                        <FormControl fullWidth>
-                          <InputLabel>County</InputLabel>
-                          <Select
-                            value={eventForm.county}
-                            onChange={(e) =>
-                              handleInputChange("county", e.target.value)
-                            }
-                            label="County"
-                          >
-                            {countyOptions.map((option) => (
-                              <MenuItem key={option.value} value={option.value}>
-                                {option.label}
-                              </MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                      </Grid>
-                      <Grid item xs={12} md={6}>
-                        <TextField
-                          fullWidth
-                          label="Sub County"
-                          value={eventForm.sub_county}
-                          onChange={(e) =>
-                            handleInputChange("sub_county", e.target.value)
-                          }
-                        />
-                      </Grid>
-                    </Grid>
-                    <Grid container spacing={2}>
-                      <Grid item xs={12} md={4}>
-                        <TextField
-                          fullWidth
-                          label="Event Date"
-                          type="date"
-                          value={eventForm.event_date}
-                          onChange={(e) =>
-                            handleInputChange("event_date", e.target.value)
-                          }
-                          InputLabelProps={{ shrink: true }}
-                          required
-                          InputProps={{
-                            startAdornment: (
-                              <InputAdornment position="start">
-                                <Schedule sx={{ color: "#667eea" }} />
-                              </InputAdornment>
-                            ),
-                          }}
-                        />
-                      </Grid>
-                      <Grid item xs={12} md={4}>
-                        <TextField
-                          fullWidth
-                          label="Start Time"
-                          type="time"
-                          value={eventForm.start_time}
-                          onChange={(e) =>
-                            handleInputChange("start_time", e.target.value)
-                          }
-                          InputLabelProps={{ shrink: true }}
-                          required
-                        />
-                      </Grid>
-                      <Grid item xs={12} md={4}>
-                        <TextField
-                          fullWidth
-                          label="End Time"
-                          type="time"
-                          value={eventForm.end_time}
-                          onChange={(e) =>
-                            handleInputChange("end_time", e.target.value)
-                          }
-                          InputLabelProps={{ shrink: true }}
-                        />
-                      </Grid>
-                    </Grid>
-                    <Grid container spacing={2}>
-                      <Grid item xs={12} md={6}>
-                        <FormControl fullWidth>
-                          <InputLabel>Category</InputLabel>
-                          <Select
-                            value={eventForm.category}
-                            onChange={(e) =>
-                              handleInputChange("category", e.target.value)
-                            }
-                            label="Category"
-                            required
-                          >
-                            {categoryOptions.map((option) => (
-                              <MenuItem key={option.value} value={option.value}>
-                                {option.label}
-                              </MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                      </Grid>
-                      <Grid item xs={12} md={6}>
-                        <TextField
-                          fullWidth
-                          label="Commission Rate (%)"
-                          type="number"
-                          value={eventForm.commission_rate}
-                          onChange={(e) =>
-                            handleInputChange(
-                              "commission_rate",
-                              parseFloat(e.target.value)
-                            )
-                          }
-                          inputProps={{ min: 0, max: 50, step: 0.1 }}
-                          helperText="Platform commission percentage (0-50%)"
-                        />
-                      </Grid>
-                    </Grid>
+                    <FormControl fullWidth>
+                      <InputLabel>County</InputLabel>
+                      <Select
+                        value={eventForm.county}
+                        onChange={(e) =>
+                          handleInputChange("county", e.target.value)
+                        }
+                        label="County"
+                      >
+                        {countyOptions.map((option) => (
+                          <MenuItem key={option.value} value={option.value}>
+                            {option.label}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    <TextField
+                      fullWidth
+                      label="Sub County"
+                      value={eventForm.sub_county}
+                      onChange={(e) =>
+                        handleInputChange("sub_county", e.target.value)
+                      }
+                    />
+                    <TextField
+                      fullWidth
+                      label="Event Date"
+                      type="date"
+                      value={eventForm.event_date}
+                      onChange={(e) =>
+                        handleInputChange("event_date", e.target.value)
+                      }
+                      InputLabelProps={{ shrink: true }}
+                      required
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <Schedule sx={{ color: "#667eea" }} />
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                    <TextField
+                      fullWidth
+                      label="Start Time"
+                      type="time"
+                      value={eventForm.start_time}
+                      onChange={(e) =>
+                        handleInputChange("start_time", e.target.value)
+                      }
+                      InputLabelProps={{ shrink: true }}
+                      required
+                    />
+                    <TextField
+                      fullWidth
+                      label="End Time"
+                      type="time"
+                      value={eventForm.end_time}
+                      onChange={(e) =>
+                        handleInputChange("end_time", e.target.value)
+                      }
+                      InputLabelProps={{ shrink: true }}
+                    />
+                    <FormControl fullWidth>
+                      <InputLabel>Category</InputLabel>
+                      <Select
+                        value={eventForm.category}
+                        onChange={(e) =>
+                          handleInputChange("category", e.target.value)
+                        }
+                        label="Category"
+                        required
+                      >
+                        {categoryOptions.map((option) => (
+                          <MenuItem key={option.value} value={option.value}>
+                            {option.label}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    <TextField
+                      fullWidth
+                      label="Commission Rate (%)"
+                      type="number"
+                      value={eventForm.commission_rate}
+                      onChange={(e) =>
+                        handleInputChange(
+                          "commission_rate",
+                          parseFloat(e.target.value)
+                        )
+                      }
+                      inputProps={{ min: 0, max: 50, step: 0.1 }}
+                      helperText="Platform commission percentage (0-50%)"
+                    />
                   </Stack>
                 </CardContent>
               </Card>
