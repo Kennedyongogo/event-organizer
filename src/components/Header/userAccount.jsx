@@ -80,7 +80,7 @@ export default function UserAccount({ open, onClose, currentUser }) {
             Account Details
           </Typography>
           <Typography variant="body2" sx={{ opacity: 0.9, fontSize: "0.9rem" }}>
-            {currentUser?.name}
+            {currentUser?.organization_name}
           </Typography>
         </Box>
 
@@ -103,7 +103,41 @@ export default function UserAccount({ open, onClose, currentUser }) {
 
       <DialogContent sx={{ p: 3, backgroundColor: "#fafafa" }}>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          {/* Name */}
+          {/* Organization Name */}
+          <Box
+            sx={{
+              p: 2,
+              backgroundColor: "white",
+              borderRadius: 2,
+              boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+              border: "1px solid #e0e0e0",
+            }}
+          >
+            <Typography
+              variant="subtitle2"
+              sx={{
+                color: "text.secondary",
+                mb: 1,
+                fontSize: "0.8rem",
+                textTransform: "uppercase",
+                letterSpacing: 0.5,
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+              }}
+            >
+              <WorkIcon sx={{ fontSize: 16 }} />
+              Organization
+            </Typography>
+            <Typography
+              variant="body1"
+              sx={{ fontWeight: 500, color: "text.primary" }}
+            >
+              {currentUser?.organization_name}
+            </Typography>
+          </Box>
+
+          {/* Contact Person */}
           <Box
             sx={{
               p: 2,
@@ -127,13 +161,13 @@ export default function UserAccount({ open, onClose, currentUser }) {
               }}
             >
               <PersonIcon sx={{ fontSize: 16 }} />
-              Name
+              Contact Person
             </Typography>
             <Typography
               variant="body1"
               sx={{ fontWeight: 500, color: "text.primary" }}
             >
-              {currentUser?.name}
+              {currentUser?.contact_person}
             </Typography>
           </Box>
 
@@ -201,7 +235,7 @@ export default function UserAccount({ open, onClose, currentUser }) {
               variant="body1"
               sx={{ fontWeight: 500, color: "text.primary" }}
             >
-              {currentUser?.phone || "Not provided"}
+              {currentUser?.phone_number || "Not provided"}
             </Typography>
           </Box>
 
@@ -232,10 +266,7 @@ export default function UserAccount({ open, onClose, currentUser }) {
               Role
             </Typography>
             <Chip
-              label={
-                currentUser?.role?.charAt(0).toUpperCase() +
-                currentUser?.role?.slice(1)
-              }
+              label="Event Organizer"
               color="primary"
               variant="outlined"
               sx={{ fontWeight: 600 }}
@@ -269,10 +300,20 @@ export default function UserAccount({ open, onClose, currentUser }) {
             </Typography>
             <Chip
               icon={
-                currentUser?.isActive ? <CheckCircleIcon /> : <CancelIcon />
+                currentUser?.status === "approved" ? (
+                  <CheckCircleIcon />
+                ) : (
+                  <CancelIcon />
+                )
               }
-              label={currentUser?.isActive ? "Active" : "Inactive"}
-              color={currentUser?.isActive ? "success" : "error"}
+              label={currentUser?.status?.toUpperCase() || "Unknown"}
+              color={
+                currentUser?.status === "approved"
+                  ? "success"
+                  : currentUser?.status === "pending"
+                  ? "warning"
+                  : "error"
+              }
               variant="filled"
               sx={{ fontWeight: 600 }}
             />

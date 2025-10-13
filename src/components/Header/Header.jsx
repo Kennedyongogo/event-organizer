@@ -88,7 +88,7 @@ export default function Header(props) {
   const logout = () => {
     localStorage.clear();
     navigate("/");
-    fetch("/api/admin/logout", {
+    fetch("/api/organizers/logout", {
       method: "GET",
       credentials: "include",
     });
@@ -132,15 +132,15 @@ export default function Header(props) {
 
         <Box sx={{ display: "flex", alignItems: "center" }}>
           <Typography variant="body1" sx={{ mr: 1 }}>
-            {currentUser?.name}
+            {currentUser?.contact_person || currentUser?.organization_name}
           </Typography>
 
-          {/* Profile Picture or Avatar */}
+          {/* Organization Logo or Avatar */}
           <Box sx={{ mr: 1 }}>
-            {currentUser?.profile_picture ? (
+            {currentUser?.logo ? (
               <Avatar
-                src={buildImageUrl(currentUser.profile_picture)}
-                alt={currentUser?.name}
+                src={buildImageUrl(currentUser.logo)}
+                alt={currentUser?.organization_name}
                 sx={{
                   width: 32,
                   height: 32,
@@ -160,7 +160,9 @@ export default function Header(props) {
                   fontSize: "0.875rem",
                 }}
               >
-                {getInitials(currentUser?.name)}
+                {getInitials(
+                  currentUser?.organization_name || currentUser?.contact_person
+                )}
               </Avatar>
             )}
           </Box>
