@@ -2,359 +2,158 @@ import React from "react";
 import {
   Box,
   Dialog,
-  DialogActions,
   DialogContent,
   DialogTitle,
   IconButton,
   Typography,
-  Divider,
-  Button,
-  Avatar,
   Chip,
+  Avatar,
+  Stack,
+  Divider,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import PersonIcon from "@mui/icons-material/Person";
-import EmailIcon from "@mui/icons-material/Email";
-import PhoneIcon from "@mui/icons-material/Phone";
-import WorkIcon from "@mui/icons-material/Work";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import CancelIcon from "@mui/icons-material/Cancel";
-import LoginIcon from "@mui/icons-material/Login";
+import { tickahub, goldGradient, cyanGradient } from "../../tickahubTheme";
+import {
+  getDisplayName,
+  getInitials,
+  getPhone,
+  getOrganizerStatus,
+  getRoleLabel,
+  getUserRole,
+  getProfileImageUrl,
+} from "../../utils/userDisplay";
+
+const DetailRow = ({ label, children }) => (
+  <Box
+    sx={{
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 2,
+      py: 0.85,
+      minHeight: 36,
+    }}
+  >
+    <Typography
+      sx={{
+        color: tickahub.textMuted,
+        fontFamily: "monospace",
+        fontSize: "0.75rem",
+        flexShrink: 0,
+      }}
+    >
+      {label}
+    </Typography>
+    <Box sx={{ textAlign: "right", minWidth: 0 }}>{children}</Box>
+  </Box>
+);
+
+const textValue = (value) => (
+  <Typography sx={{ color: "#fff", fontSize: "0.88rem", fontWeight: 500, wordBreak: "break-word" }}>
+    {value || "—"}
+  </Typography>
+);
 
 export default function UserAccount({ open, onClose, currentUser }) {
+  const displayName = getDisplayName(currentUser);
+  const role = getUserRole();
+  const isArtist = role === "artist";
+  const isOrganizer = role === "organizer" || role === "event_organizer";
+  const status = getOrganizerStatus(currentUser);
+  const avatarSrc = getProfileImageUrl(currentUser);
+
   return (
     <Dialog
       open={open}
       onClose={onClose}
       fullWidth
-      maxWidth="sm"
+      maxWidth="xs"
       PaperProps={{
         sx: {
           borderRadius: 3,
-          boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
+          bgcolor: tickahub.surface,
+          border: `1px solid ${tickahub.borderSubtle}`,
+          overflow: "hidden",
         },
       }}
     >
       <DialogTitle
         sx={{
-          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-          color: "white",
-          fontWeight: "bold",
+          py: 1.5,
+          px: 2,
+          background: `linear-gradient(135deg, ${tickahub.navyLight} 0%, ${tickahub.surface} 100%)`,
+          color: "#fff",
+          borderBottom: `1px solid ${tickahub.borderSubtle}`,
           display: "flex",
           alignItems: "center",
-          gap: 2,
-          p: 3,
-          position: "relative",
-          overflow: "hidden",
+          gap: 1.5,
+          pr: 5,
         }}
       >
-        {/* Decorative Elements */}
-        <Box
+        <Avatar
+          src={avatarSrc || undefined}
           sx={{
-            position: "absolute",
-            top: -20,
-            right: -20,
-            width: 100,
-            height: 100,
-            background: "rgba(255, 255, 255, 0.1)",
-            borderRadius: "50%",
-            zIndex: 0,
-          }}
-        />
-        <Box
-          sx={{
-            position: "absolute",
-            bottom: -15,
-            left: -15,
-            width: 80,
-            height: 80,
-            background: "rgba(255, 255, 255, 0.05)",
-            borderRadius: "50%",
-            zIndex: 0,
-          }}
-        />
-
-        <PersonIcon sx={{ position: "relative", zIndex: 1, fontSize: 28 }} />
-        <Box sx={{ position: "relative", zIndex: 1 }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "1.1rem" }}>
-            Account Details
-          </Typography>
-          <Typography variant="body2" sx={{ opacity: 0.9, fontSize: "0.9rem" }}>
-            {currentUser?.organization_name}
-          </Typography>
-        </Box>
-
-        <IconButton
-          onClick={onClose}
-          sx={{
-            position: "absolute",
-            top: 16,
-            right: 16,
-            color: "white",
-            zIndex: 1,
-            "&:hover": {
-              backgroundColor: "rgba(255,255,255,0.1)",
-            },
+            width: 40,
+            height: 40,
+            background: isArtist ? cyanGradient : goldGradient,
+            color: tickahub.navy,
+            fontWeight: 800,
+            fontSize: "0.85rem",
           }}
         >
-          <CloseIcon />
+          {getInitials(displayName)}
+        </Avatar>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography sx={{ fontWeight: 800, fontSize: "1rem", lineHeight: 1.2 }}>Account</Typography>
+          <Typography noWrap sx={{ color: tickahub.textMuted, fontSize: "0.82rem" }}>
+            {displayName}
+          </Typography>
+        </Box>
+        <IconButton onClick={onClose} size="small" sx={{ position: "absolute", right: 8, top: 8, color: tickahub.textMuted }}>
+          <CloseIcon fontSize="small" />
         </IconButton>
       </DialogTitle>
 
-      <DialogContent sx={{ p: 3, backgroundColor: "#fafafa" }}>
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          {/* Organization Name */}
-          <Box
-            sx={{
-              p: 2,
-              backgroundColor: "white",
-              borderRadius: 2,
-              boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-              border: "1px solid #e0e0e0",
-            }}
-          >
-            <Typography
-              variant="subtitle2"
-              sx={{
-                color: "text.secondary",
-                mb: 1,
-                fontSize: "0.8rem",
-                textTransform: "uppercase",
-                letterSpacing: 0.5,
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
-              }}
-            >
-              <WorkIcon sx={{ fontSize: 16 }} />
-              Organization
-            </Typography>
-            <Typography
-              variant="body1"
-              sx={{ fontWeight: 500, color: "text.primary" }}
-            >
-              {currentUser?.organization_name}
-            </Typography>
-          </Box>
-
-          {/* Contact Person */}
-          <Box
-            sx={{
-              p: 2,
-              backgroundColor: "white",
-              borderRadius: 2,
-              boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-              border: "1px solid #e0e0e0",
-            }}
-          >
-            <Typography
-              variant="subtitle2"
-              sx={{
-                color: "text.secondary",
-                mb: 1,
-                fontSize: "0.8rem",
-                textTransform: "uppercase",
-                letterSpacing: 0.5,
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
-              }}
-            >
-              <PersonIcon sx={{ fontSize: 16 }} />
-              Contact Person
-            </Typography>
-            <Typography
-              variant="body1"
-              sx={{ fontWeight: 500, color: "text.primary" }}
-            >
-              {currentUser?.contact_person}
-            </Typography>
-          </Box>
-
-          {/* Email */}
-          <Box
-            sx={{
-              p: 2,
-              backgroundColor: "white",
-              borderRadius: 2,
-              boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-              border: "1px solid #e0e0e0",
-            }}
-          >
-            <Typography
-              variant="subtitle2"
-              sx={{
-                color: "text.secondary",
-                mb: 1,
-                fontSize: "0.8rem",
-                textTransform: "uppercase",
-                letterSpacing: 0.5,
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
-              }}
-            >
-              <EmailIcon sx={{ fontSize: 16 }} />
-              Email
-            </Typography>
-            <Typography
-              variant="body1"
-              sx={{ fontWeight: 500, color: "text.primary" }}
-            >
-              {currentUser?.email}
-            </Typography>
-          </Box>
-
-          {/* Phone */}
-          <Box
-            sx={{
-              p: 2,
-              backgroundColor: "white",
-              borderRadius: 2,
-              boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-              border: "1px solid #e0e0e0",
-            }}
-          >
-            <Typography
-              variant="subtitle2"
-              sx={{
-                color: "text.secondary",
-                mb: 1,
-                fontSize: "0.8rem",
-                textTransform: "uppercase",
-                letterSpacing: 0.5,
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
-              }}
-            >
-              <PhoneIcon sx={{ fontSize: 16 }} />
-              Phone Number
-            </Typography>
-            <Typography
-              variant="body1"
-              sx={{ fontWeight: 500, color: "text.primary" }}
-            >
-              {currentUser?.phone_number || "Not provided"}
-            </Typography>
-          </Box>
-
-          {/* Role */}
-          <Box
-            sx={{
-              p: 2,
-              backgroundColor: "white",
-              borderRadius: 2,
-              boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-              border: "1px solid #e0e0e0",
-            }}
-          >
-            <Typography
-              variant="subtitle2"
-              sx={{
-                color: "text.secondary",
-                mb: 1,
-                fontSize: "0.8rem",
-                textTransform: "uppercase",
-                letterSpacing: 0.5,
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
-              }}
-            >
-              <WorkIcon sx={{ fontSize: 16 }} />
-              Role
-            </Typography>
+      <DialogContent sx={{ px: 2, py: 1.25, overflow: "hidden" }}>
+        <Stack divider={<Divider sx={{ borderColor: tickahub.borderSubtle }} />} spacing={0}>
+          {isArtist && <DetailRow label="stage_name">{textValue(currentUser?.stage_name)}</DetailRow>}
+          {isOrganizer && <DetailRow label="organization_name">{textValue(currentUser?.organization_name)}</DetailRow>}
+          <DetailRow label="full_name">{textValue(currentUser?.full_name || currentUser?.contact_person)}</DetailRow>
+          <DetailRow label="email">{textValue(currentUser?.email)}</DetailRow>
+          <DetailRow label="phone">{textValue(getPhone(currentUser))}</DetailRow>
+          {isArtist && <DetailRow label="genre">{textValue(currentUser?.genre)}</DetailRow>}
+          <DetailRow label="role">
             <Chip
-              label="Event Organizer"
-              color="primary"
-              variant="outlined"
-              sx={{ fontWeight: 600 }}
-            />
-          </Box>
-
-          {/* Status */}
-          <Box
-            sx={{
-              p: 2,
-              backgroundColor: "white",
-              borderRadius: 2,
-              boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-              border: "1px solid #e0e0e0",
-            }}
-          >
-            <Typography
-              variant="subtitle2"
+              label={getRoleLabel()}
+              size="small"
               sx={{
-                color: "text.secondary",
-                mb: 1,
-                fontSize: "0.8rem",
-                textTransform: "uppercase",
-                letterSpacing: 0.5,
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
+                bgcolor: isArtist ? `${tickahub.cyan}22` : `${tickahub.gold}22`,
+                color: isArtist ? tickahub.cyan : tickahub.gold,
+                fontWeight: 700,
+                height: 24,
               }}
-            >
-              Status
-            </Typography>
-            <Chip
-              icon={
-                currentUser?.status === "approved" ? (
-                  <CheckCircleIcon />
-                ) : (
-                  <CancelIcon />
-                )
-              }
-              label={currentUser?.status?.toUpperCase() || "Unknown"}
-              color={
-                currentUser?.status === "approved"
-                  ? "success"
-                  : currentUser?.status === "pending"
-                  ? "warning"
-                  : "error"
-              }
-              variant="filled"
-              sx={{ fontWeight: 600 }}
             />
-          </Box>
-
-          {/* Last Login */}
-          <Box
-            sx={{
-              p: 2,
-              backgroundColor: "white",
-              borderRadius: 2,
-              boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-              border: "1px solid #e0e0e0",
-            }}
-          >
-            <Typography
-              variant="subtitle2"
-              sx={{
-                color: "text.secondary",
-                mb: 1,
-                fontSize: "0.8rem",
-                textTransform: "uppercase",
-                letterSpacing: 0.5,
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
-              }}
-            >
-              <LoginIcon sx={{ fontSize: 16 }} />
-              Last Login
-            </Typography>
-            <Typography
-              variant="body1"
-              sx={{ fontWeight: 500, color: "text.primary" }}
-            >
-              {currentUser?.lastLogin
-                ? new Date(currentUser.lastLogin).toLocaleString()
-                : "Never"}
-            </Typography>
-          </Box>
-        </Box>
+          </DetailRow>
+          {isOrganizer && (
+            <DetailRow label="organizer_status">
+              <Chip
+                label={status}
+                size="small"
+                sx={{ height: 24 }}
+                color={
+                  status === "approved" || status === "active"
+                    ? "success"
+                    : status === "pending"
+                      ? "warning"
+                      : "error"
+                }
+              />
+            </DetailRow>
+          )}
+          <DetailRow label="lastLogin">
+            {textValue(currentUser?.lastLogin ? new Date(currentUser.lastLogin).toLocaleString() : "—")}
+          </DetailRow>
+        </Stack>
       </DialogContent>
     </Dialog>
   );

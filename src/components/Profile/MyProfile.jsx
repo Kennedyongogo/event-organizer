@@ -1,758 +1,1103 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Box,
+  Stack,
   Typography,
-  Card,
-  CardContent,
-  Grid,
-  Button,
   TextField,
+  Button,
+  Paper,
+  InputAdornment,
+  CircularProgress,
+  Chip,
   Avatar,
   IconButton,
-  CircularProgress,
-  Divider,
-  Paper,
-  Stack,
-  Chip,
-  InputAdornment,
 } from "@mui/material";
 import {
-  Edit as EditIcon,
+  Person as PersonIcon,
+  Business as BusinessIcon,
+  AccountBalance as BankIcon,
+  MusicNote as MusicIcon,
   Save as SaveIcon,
-  Cancel as CancelIcon,
-  PhotoCamera,
-  Business,
-  Person,
-  Email,
-  Phone,
-  LocationOn,
-  AccountBalance,
-  Language,
-  CreditCard,
-  CheckCircle,
-  Pending,
-  Block,
+  Edit as EditIcon,
+  Close as CancelIcon,
+  Badge as BadgeIcon,
+  Email as EmailIcon,
+  Phone as PhoneIcon,
+  LocationOn as LocationIcon,
+  CreditCard as CreditCardIcon,
+  Description as BioIcon,
+  PhotoCamera as PhotoCameraIcon,
+  DeleteOutline as DeletePhotoIcon,
 } from "@mui/icons-material";
-import { useTheme } from "@mui/material/styles";
 import Swal from "sweetalert2";
+import { tickahub, goldGradient, backgroundGradient, cyanGradient } from "../../tickahubTheme";
+import {
+  getDisplayName,
+  getInitials,
+  getUserRole,
+  getProfileImageUrl,
+  notifyUserUpdated,
+} from "../../utils/userDisplay";
 
-// Helper function to build proper image URLs
-const buildImageUrl = (imageUrl) => {
-  if (!imageUrl) return "";
-  if (imageUrl.startsWith("http")) return imageUrl;
-
-  // Use relative URLs - Vite proxy will handle routing to backend
-  if (imageUrl.startsWith("uploads/")) return `/${imageUrl}`;
-  if (imageUrl.startsWith("/uploads/")) return imageUrl;
-  return imageUrl;
+const swalDark = {
+  confirmButtonColor: tickahub.gold,
+  background: tickahub.surface,
+  color: "#fff",
 };
 
-const MyProfile = () => {
-  const theme = useTheme();
+const fieldSx = {
+  "& .MuiOutlinedInput-root": {
+    borderRadius: 2,
+    bgcolor: tickahub.navy,
+    "& fieldset": { borderColor: tickahub.borderSubtle },
+    "&:hover fieldset": { borderColor: tickahub.borderLight },
+    "&.Mui-focused fieldset": { borderColor: tickahub.cyan },
+  },
+  "& .MuiInputLabel-root": { color: tickahub.textMuted },
+  "& .MuiOutlinedInput-input": { color: "#fff" },
+  "& .Mui-disabled": { WebkitTextFillColor: `${tickahub.textMuted} !important` },
+  "& .MuiFormHelperText-root": { color: tickahub.textMuted, mt: 0.5 },
+};
+
+const sectionTitleSx = {
+  color: "#fff",
+  fontWeight: 800,
+  fontSize: "1rem",
+};
+
+const halfCardSx = {
+  flex: { xs: "none", md: 1 },
+  minWidth: 0,
+  display: "flex",
+  flexDirection: "column",
+  borderRadius: 3,
+  overflow: "visible",
+  bgcolor: tickahub.surface,
+  border: `1px solid ${tickahub.borderSubtle}`,
+  mb: { md: 0 },
+};
+
+const pageShellSx = {
+  m: { xs: -2, md: -3 },
+  background: backgroundGradient,
+  display: "flex",
+  flexDirection: "column",
+  pt: 2,
+  px: 2,
+  pb: 2,
+  gap: 2,
+};
+
+const cardsRowSx = {
+  display: "flex",
+  flexDirection: { xs: "column", md: "row" },
+  alignItems: { md: "stretch" },
+  gap: 2,
+  mb: { md: 0 },
+};
+
+const cardBodySx = {
+  p: 2.5,
+};
+
+const cardHeaderSx = {
+  px: 2.5,
+  py: 1.75,
+  flexShrink: 0,
+  borderBottom: `1px solid ${tickahub.borderSubtle}`,
+};
+
+const emptyProfile = {
+  full_name: "",
+  email: "",
+  phone: "",
+  role: "",
+  organization_name: "",
+  address: "",
+  kra_pin: "",
+  pesapal_merchant_ref: "",
+  bank_name: "",
+  bank_account_number: "",
+  organizer_status: "",
+  stage_name: "",
+  bio: "",
+  genre: "",
+  profile_image: "",
+  isActive: true,
+  lastLogin: null,
+};
+
+const authHeaders = (json = true) => {
+  const token = localStorage.getItem("token");
+  return {
+    ...(json ? { "Content-Type": "application/json" } : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+};
+
+const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
+
+const statusChipColor = (status) => {
+  if (status === "approved" || status === "active") return tickahub.cyan;
+  if (status === "pending") return tickahub.gold;
+  if (status === "suspended") return "#ff6b6b";
+  return tickahub.textMuted;
+};
+
+const formatDate = (value) => {
+  if (!value) return "—";
+  try {
+    return new Date(value).toLocaleString();
+  } catch {
+    return "—";
+  }
+};
+
+const ProfileCard = ({ headerBg, icon: Icon, iconColor, title, subtitle, children }) => (
+  <Paper elevation={0} sx={halfCardSx}>
+    <Box sx={{ ...cardHeaderSx, background: headerBg }}>
+      <Stack direction="row" alignItems="center" spacing={1}>
+        <Icon sx={{ color: iconColor, fontSize: 20 }} />
+        <Typography sx={sectionTitleSx}>{title}</Typography>
+      </Stack>
+      {subtitle && (
+        <Typography sx={{ color: tickahub.textMuted, fontSize: "0.8rem", mt: 0.25 }}>
+          {subtitle}
+        </Typography>
+      )}
+    </Box>
+    <Box sx={cardBodySx}>{children}</Box>
+  </Paper>
+);
+
+const ViewField = ({ label, value, multiline = false }) => (
+  <Box>
+    <Typography variant="caption" sx={{ color: tickahub.textMuted, fontFamily: "monospace", fontSize: "0.72rem" }}>
+      {label}
+    </Typography>
+    <Typography
+      sx={{
+        color: "#fff",
+        fontSize: "0.9rem",
+        fontWeight: 500,
+        mt: 0.35,
+        wordBreak: "break-word",
+        whiteSpace: multiline ? "pre-wrap" : "normal",
+      }}
+    >
+      {value || "—"}
+    </Typography>
+  </Box>
+);
+
+export default function MyProfile() {
+  const userRole = getUserRole();
+  const isArtist = userRole === "artist";
+  const storedUser = JSON.parse(localStorage.getItem("user") || "null");
+  const userId = storedUser?.id;
+  const fileInputRef = useRef(null);
+
+  const [profile, setProfile] = useState(emptyProfile);
+  const [savedProfile, setSavedProfile] = useState(emptyProfile);
+  const [editMode, setEditMode] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [editMode, setEditMode] = useState(false);
-  const [profileData, setProfileData] = useState({
-    organization_name: "",
-    contact_person: "",
-    email: "",
-    phone_number: "",
-    address: "",
-    kra_pin: "",
-    pesapal_merchant_ref: "",
-    bank_name: "",
-    bank_account_number: "",
-    website: "",
-    logo: "",
-    status: "",
-  });
-  const [originalData, setOriginalData] = useState({});
-  const [logoPreview, setLogoPreview] = useState(null);
-  const [logoFile, setLogoFile] = useState(null);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoPreview, setPhotoPreview] = useState(null);
+
+  const applyProfile = (u) => {
+    const next = {
+      full_name: u.full_name || "",
+      email: u.email || "",
+      phone: u.phone || "",
+      role: u.role || (isArtist ? "artist" : "event_organizer"),
+      organization_name: u.organization_name || "",
+      address: u.address || "",
+      kra_pin: u.kra_pin || "",
+      pesapal_merchant_ref: u.pesapal_merchant_ref || "",
+      bank_name: u.bank_name || "",
+      bank_account_number: u.bank_account_number || "",
+      organizer_status: u.organizer_status || "",
+      stage_name: u.stage_name || "",
+      bio: u.bio || "",
+      genre: u.genre || "",
+      profile_image: u.profile_image || "",
+      isActive: u.isActive !== false,
+      lastLogin: u.lastLogin || null,
+    };
+    setProfile(next);
+    setSavedProfile(next);
+  };
+
+  const handleEdit = () => setEditMode(true);
+
+  const handleCancel = () => {
+    setProfile(savedProfile);
+    setEditMode(false);
+  };
+
+  const setField = (field, value) => setProfile((prev) => ({ ...prev, [field]: value }));
 
   useEffect(() => {
-    fetchProfile();
-  }, []);
-
-  const fetchProfile = async () => {
-    try {
-      setLoading(true);
+    const loadProfile = async () => {
+      if (!userId && !isArtist) return;
       const token = localStorage.getItem("token");
-      const user = JSON.parse(localStorage.getItem("user"));
-
-      if (!token || !user) {
-        Swal.fire({
-          icon: "error",
-          title: "Authentication Error",
-          text: "Please login again",
-        });
+      if (!token) {
+        Swal.fire({ icon: "error", title: "Session expired", text: "Please sign in again.", ...swalDark });
         window.location.href = "/";
         return;
       }
 
-      const response = await fetch(`/api/organizers/${user.id}`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+      try {
+        setLoading(true);
+        const url = isArtist ? "/api/artists/me" : `/api/users/${userId}`;
+        const response = await fetch(url, { headers: authHeaders() });
+        const data = await response.json();
+
+        if (data.success && data.data) {
+          applyProfile(data.data);
+          notifyUserUpdated(data.data);
+        } else {
+          throw new Error(data.message || "Failed to load profile");
+        }
+      } catch (err) {
+        Swal.fire({
+          icon: "error",
+          title: "Could not load profile",
+          text: err.message,
+          ...swalDark,
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProfile();
+  }, [userId, isArtist]);
+
+  const profileUrl = () => (isArtist ? "/api/artists/me" : `/api/users/${userId}`);
+
+  const appendProfileFields = (formData) => {
+    if (isArtist) {
+      formData.append("full_name", profile.full_name.trim());
+      formData.append("phone", profile.phone.trim());
+      formData.append("stage_name", profile.stage_name.trim());
+      formData.append("genre", profile.genre.trim());
+      formData.append("bio", profile.bio.trim());
+    } else {
+      formData.append("full_name", profile.full_name.trim());
+      formData.append("phone", profile.phone.trim());
+      formData.append("organization_name", profile.organization_name.trim());
+      formData.append("address", profile.address.trim());
+      formData.append("kra_pin", profile.kra_pin.trim());
+      formData.append("bank_name", profile.bank_name.trim());
+      formData.append("bank_account_number", profile.bank_account_number.trim());
+      formData.append("pesapal_merchant_ref", profile.pesapal_merchant_ref.trim());
+    }
+  };
+
+  const handlePhotoSelect = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+      Swal.fire({
+        icon: "error",
+        title: "Invalid file type",
+        text: "Use JPG, PNG, GIF, or WebP.",
+        ...swalDark,
+      });
+      return;
+    }
+    if (file.size > MAX_PHOTO_BYTES) {
+      Swal.fire({
+        icon: "error",
+        title: "File too large",
+        text: "Maximum size is 10MB.",
+        ...swalDark,
+      });
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    setPhotoPreview(previewUrl);
+
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    try {
+      setPhotoUploading(true);
+      Swal.fire({
+        title: "Uploading photo...",
+        allowOutsideClick: false,
+        ...swalDark,
+        didOpen: () => Swal.showLoading(),
       });
 
+      const formData = new FormData();
+      formData.append("profile_image", file);
+      appendProfileFields(formData);
+
+      const response = await fetch(profileUrl(), {
+        method: "PUT",
+        headers: authHeaders(false),
+        body: formData,
+      });
       const data = await response.json();
 
-      if (data.success) {
-        setProfileData(data.data);
-        setOriginalData(data.data);
-        if (data.data.logo) {
-          setLogoPreview(buildImageUrl(data.data.logo));
-        }
-      } else {
-        throw new Error(data.message);
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Failed to upload photo");
       }
+
+      applyProfile(data.data);
+      notifyUserUpdated(data.data);
+      URL.revokeObjectURL(previewUrl);
+      setPhotoPreview(null);
+
+      Swal.fire({
+        icon: "success",
+        title: "Photo updated",
+        timer: 1800,
+        showConfirmButton: false,
+        ...swalDark,
+      });
+    } catch (err) {
+      URL.revokeObjectURL(previewUrl);
+      setPhotoPreview(null);
+      Swal.fire({
+        icon: "error",
+        title: "Upload failed",
+        text: err.message,
+        ...swalDark,
+      });
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
+
+  const handleRemovePhoto = async () => {
+    if (!profile.profile_image && !photoPreview) return;
+
+    const result = await Swal.fire({
+      icon: "warning",
+      title: "Remove photo?",
+      text: "Your profile picture will be removed.",
+      showCancelButton: true,
+      confirmButtonText: "Remove",
+      cancelButtonText: "Cancel",
+      confirmButtonColor: tickahub.gold,
+      ...swalDark,
+    });
+    if (!result.isConfirmed) return;
+
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    try {
+      setPhotoUploading(true);
+      Swal.fire({
+        title: "Removing photo...",
+        allowOutsideClick: false,
+        ...swalDark,
+        didOpen: () => Swal.showLoading(),
+      });
+
+      const formData = new FormData();
+      formData.append("remove_profile_image", "true");
+      appendProfileFields(formData);
+
+      const response = await fetch(profileUrl(), {
+        method: "PUT",
+        headers: authHeaders(false),
+        body: formData,
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Failed to remove photo");
+      }
+
+      applyProfile(data.data);
+      notifyUserUpdated(data.data);
+      if (photoPreview) {
+        URL.revokeObjectURL(photoPreview);
+        setPhotoPreview(null);
+      }
+
+      Swal.fire({
+        icon: "success",
+        title: "Photo removed",
+        timer: 1800,
+        showConfirmButton: false,
+        ...swalDark,
+      });
     } catch (err) {
       Swal.fire({
         icon: "error",
-        title: "Error",
-        text: "Failed to load profile data",
+        title: "Remove failed",
+        text: err.message,
+        ...swalDark,
       });
     } finally {
-      setLoading(false);
+      setPhotoUploading(false);
     }
-  };
-
-  const handleInputChange = (field, value) => {
-    setProfileData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
-  const handleLogoChange = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        Swal.fire({
-          icon: "error",
-          title: "File Too Large",
-          text: "Logo must be less than 5MB",
-        });
-        return;
-      }
-      setLogoFile(file);
-      setLogoPreview(URL.createObjectURL(file));
-    }
-  };
-
-  const handleEdit = () => {
-    setEditMode(true);
-  };
-
-  const handleCancel = () => {
-    setProfileData(originalData);
-    setLogoPreview(originalData.logo ? buildImageUrl(originalData.logo) : null);
-    setLogoFile(null);
-    setEditMode(false);
   };
 
   const handleSave = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
     try {
       setSaving(true);
-      const token = localStorage.getItem("token");
-      const user = JSON.parse(localStorage.getItem("user"));
-
-      const formData = new FormData();
-      formData.append("organization_name", profileData.organization_name);
-      formData.append("contact_person", profileData.contact_person);
-      formData.append("email", profileData.email);
-      formData.append("phone_number", profileData.phone_number);
-      formData.append("address", profileData.address || "");
-      formData.append("kra_pin", profileData.kra_pin || "");
-      formData.append(
-        "pesapal_merchant_ref",
-        profileData.pesapal_merchant_ref || ""
-      );
-      formData.append("bank_name", profileData.bank_name || "");
-      formData.append(
-        "bank_account_number",
-        profileData.bank_account_number || ""
-      );
-      formData.append("website", profileData.website || "");
-
-      if (logoFile) {
-        formData.append("logo", logoFile);
-      }
-
-      const response = await fetch(`/api/organizers/${user.id}`, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
+      Swal.fire({
+        title: "Saving profile...",
+        allowOutsideClick: false,
+        ...swalDark,
+        didOpen: () => Swal.showLoading(),
       });
 
+      const url = profileUrl();
+      const body = isArtist
+        ? {
+            full_name: profile.full_name.trim(),
+            phone: profile.phone.trim(),
+            stage_name: profile.stage_name.trim(),
+            genre: profile.genre.trim(),
+            bio: profile.bio.trim(),
+          }
+        : {
+            full_name: profile.full_name.trim(),
+            phone: profile.phone.trim(),
+            organization_name: profile.organization_name.trim(),
+            address: profile.address.trim(),
+            kra_pin: profile.kra_pin.trim(),
+            bank_name: profile.bank_name.trim(),
+            bank_account_number: profile.bank_account_number.trim(),
+            pesapal_merchant_ref: profile.pesapal_merchant_ref.trim(),
+          };
+
+      const response = await fetch(url, {
+        method: "PUT",
+        headers: authHeaders(),
+        body: JSON.stringify(body),
+      });
       const data = await response.json();
 
-      if (data.success) {
-        Swal.fire({
-          icon: "success",
-          title: "Success!",
-          text: "Profile updated successfully",
-          timer: 1500,
-          showConfirmButton: false,
-        });
-        setOriginalData(data.data);
-        setProfileData(data.data);
-        setEditMode(false);
-        setLogoFile(null);
-
-        // Update localStorage
-        const updatedUser = { ...user, ...data.data };
-        localStorage.setItem("user", JSON.stringify(updatedUser));
-      } else {
-        throw new Error(data.message);
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Failed to update profile");
       }
+
+      applyProfile(data.data);
+      notifyUserUpdated(data.data);
+      setEditMode(false);
+
+      Swal.fire({
+        icon: "success",
+        title: "Profile updated",
+        text: "Your changes have been saved.",
+        timer: 2000,
+        showConfirmButton: false,
+        ...swalDark,
+      });
     } catch (err) {
       Swal.fire({
         icon: "error",
-        title: "Error",
-        text: err.message || "Failed to update profile",
+        title: "Update failed",
+        text: err.message,
+        ...swalDark,
       });
     } finally {
       setSaving(false);
     }
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "approved":
-      case "active":
-        return "success";
-      case "pending":
-        return "warning";
-      case "suspended":
-        return "error";
-      default:
-        return "default";
-    }
-  };
+  const displayName = getDisplayName(profile);
+  const roleLabel = profile.role || (isArtist ? "artist" : "event_organizer");
+  const avatarSrc = photoPreview || getProfileImageUrl(profile);
+  const hasPhoto = Boolean(avatarSrc);
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case "approved":
-      case "active":
-        return <CheckCircle />;
-      case "pending":
-        return <Pending />;
-      case "suspended":
-        return <Block />;
-      default:
-        return null;
-    }
-  };
+  const profileHeaderActions = editMode ? (
+    <>
+      <Button
+        variant="outlined"
+        size="small"
+        onClick={handleCancel}
+        disabled={saving || photoUploading}
+        startIcon={<CancelIcon sx={{ display: { xs: "none", sm: "inline-flex" } }} />}
+        sx={{
+          color: tickahub.textMuted,
+          borderColor: tickahub.borderSubtle,
+          textTransform: "none",
+          fontWeight: 600,
+          minWidth: { xs: "auto", sm: 64 },
+          px: { xs: 1.25, sm: 2 },
+        }}
+      >
+        <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
+          Cancel
+        </Box>
+        <Box component="span" sx={{ display: { xs: "inline", sm: "none" } }}>
+          ×
+        </Box>
+      </Button>
+      <Button
+        variant="contained"
+        size="small"
+        onClick={handleSave}
+        disabled={saving || photoUploading}
+        startIcon={
+          saving ? (
+            <CircularProgress size={16} color="inherit" />
+          ) : (
+            <SaveIcon sx={{ display: { xs: "none", sm: "inline-flex" } }} />
+          )
+        }
+        sx={{
+          background: goldGradient,
+          color: tickahub.navy,
+          fontWeight: 700,
+          textTransform: "none",
+          px: { xs: 1.25, sm: 2.5 },
+          minWidth: { xs: "auto", sm: 64 },
+        }}
+      >
+        {saving ? (
+          <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
+            Saving...
+          </Box>
+        ) : (
+          <>
+            <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
+              Save profile
+            </Box>
+            <Box component="span" sx={{ display: { xs: "inline", sm: "none" } }}>
+              Save
+            </Box>
+          </>
+        )}
+      </Button>
+    </>
+  ) : (
+    <IconButton
+      onClick={handleEdit}
+      disabled={photoUploading}
+      aria-label="Edit profile"
+      size="small"
+      sx={{
+        color: tickahub.gold,
+        bgcolor: `${tickahub.gold}18`,
+        border: `1px solid ${tickahub.gold}44`,
+        "&:hover": { bgcolor: `${tickahub.gold}30` },
+      }}
+    >
+      <EditIcon fontSize="small" />
+    </IconButton>
+  );
+
+  const profileTitle = (
+    <Stack direction="row" alignItems="center" spacing={1}>
+      <BadgeIcon sx={{ color: tickahub.gold, fontSize: 20 }} />
+      <Typography variant="h6" sx={{ fontWeight: 800, color: "#fff", fontSize: { xs: "1.05rem", md: "1.25rem" } }}>
+        My Profile
+      </Typography>
+    </Stack>
+  );
 
   if (loading) {
     return (
       <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="80vh"
+        sx={{
+          m: { xs: -2, md: -3 },
+          minHeight: "40vh",
+          background: backgroundGradient,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
       >
-        <CircularProgress size={60} sx={{ color: "#667eea" }} />
+        <CircularProgress sx={{ color: tickahub.cyan }} size={36} />
       </Box>
     );
   }
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
-        py: 4,
-      }}
-    >
+    <Box sx={pageShellSx}>
       <Paper
         elevation={0}
         sx={{
-          borderRadius: 4,
-          overflow: "hidden",
-          background: "rgba(255, 255, 255, 0.95)",
-          backdropFilter: "blur(10px)",
-          maxWidth: 1200,
-          mx: "auto",
+          px: 2.5,
+          py: 1.75,
+          flexShrink: 0,
+          borderRadius: 3,
+          bgcolor: tickahub.surface,
+          border: `1px solid ${tickahub.borderSubtle}`,
+          background: `linear-gradient(135deg, ${tickahub.navyLight} 0%, ${tickahub.surface} 100%)`,
         }}
       >
-        {/* Header Section */}
-        <Box
-          sx={{
-            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-            p: 4,
-            color: "white",
-            position: "relative",
-            overflow: "hidden",
-          }}
-        >
-          <Box
-            sx={{
-              position: "absolute",
-              top: -50,
-              right: -50,
-              width: 200,
-              height: 200,
-              background: "rgba(255, 255, 255, 0.1)",
-              borderRadius: "50%",
-              zIndex: 0,
-            }}
-          />
-          <Box
-            sx={{
-              position: "relative",
-              zIndex: 1,
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              flexWrap: "wrap",
-              gap: 2,
-            }}
+        <Stack spacing={{ xs: 1.5, md: 0 }}>
+          <Stack
+            direction="row"
+            alignItems="center"
+            justifyContent="space-between"
+            sx={{ display: { xs: "flex", md: "none" } }}
           >
-            <Box>
-              <Typography
-                variant="h4"
-                sx={{
-                  fontWeight: 800,
-                  mb: 1,
-                  textShadow: "0 2px 4px rgba(0,0,0,0.3)",
-                }}
-              >
-                My Profile
-              </Typography>
-              <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                Manage your organization profile and settings
-              </Typography>
-            </Box>
-            <Box display="flex" gap={2}>
-              {!editMode ? (
-                <Button
-                  variant="contained"
-                  startIcon={<EditIcon />}
-                  onClick={handleEdit}
-                  sx={{
-                    background: "linear-gradient(45deg, #FF6B6B, #4ECDC4)",
-                    borderRadius: 3,
-                    px: 4,
-                    py: 1.5,
-                    fontWeight: 600,
-                    textTransform: "none",
-                    boxShadow: "0 8px 25px rgba(255, 107, 107, 0.3)",
-                    "&:hover": {
-                      background: "linear-gradient(45deg, #FF5252, #26A69A)",
-                      transform: "translateY(-2px)",
-                      boxShadow: "0 12px 35px rgba(255, 107, 107, 0.4)",
-                    },
-                  }}
-                >
-                  Edit Profile
-                </Button>
-              ) : (
-                <>
-                  <Button
-                    variant="outlined"
-                    startIcon={<CancelIcon />}
-                    onClick={handleCancel}
-                    disabled={saving}
-                    sx={{
-                      borderColor: "white",
-                      color: "white",
-                      borderRadius: 3,
-                      px: 3,
-                      "&:hover": {
-                        borderColor: "white",
-                        background: "rgba(255, 255, 255, 0.1)",
-                      },
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    variant="contained"
-                    startIcon={
-                      saving ? (
-                        <CircularProgress size={20} color="inherit" />
-                      ) : (
-                        <SaveIcon />
-                      )
-                    }
-                    onClick={handleSave}
-                    disabled={saving}
-                    sx={{
-                      background: "linear-gradient(45deg, #27ae60, #2ecc71)",
-                      borderRadius: 3,
-                      px: 4,
-                      fontWeight: 600,
-                      textTransform: "none",
-                      boxShadow: "0 8px 25px rgba(39, 174, 96, 0.3)",
-                      "&:hover": {
-                        background: "linear-gradient(45deg, #229954, #27ae60)",
-                        transform: "translateY(-2px)",
-                      },
-                    }}
-                  >
-                    {saving ? "Saving..." : "Save Changes"}
-                  </Button>
-                </>
-              )}
-            </Box>
-          </Box>
-        </Box>
+            {profileTitle}
+            <Stack direction="row" spacing={0.75} alignItems="center" sx={{ flexShrink: 0 }}>
+              {profileHeaderActions}
+            </Stack>
+          </Stack>
 
-        {/* Profile Content */}
-        <Box sx={{ p: 4 }}>
-          {/* Logo and Status Section - Full Width Horizontal */}
-          <Card
-            sx={{
-              p: 4,
-              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-              color: "white",
-              borderRadius: 3,
-              boxShadow: "0 8px 25px rgba(102, 126, 234, 0.3)",
-              mb: 4,
-            }}
+          <Stack
+            direction="row"
+            alignItems={{ xs: "flex-start", md: "center" }}
+            justifyContent="space-between"
+            flexWrap={{ md: "wrap" }}
+            gap={2}
           >
-            <Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
-              {/* Logo */}
-              <Box sx={{ position: "relative", display: "inline-block" }}>
+            <Stack direction="row" alignItems="center" spacing={2} sx={{ flex: 1, minWidth: 0 }}>
+              <Box sx={{ position: "relative", flexShrink: 0 }}>
                 <Avatar
-                  src={logoPreview}
+                  src={avatarSrc || undefined}
                   sx={{
-                    width: 120,
-                    height: 120,
-                    border: "4px solid white",
-                    boxShadow: "0 8px 25px rgba(0, 0, 0, 0.2)",
+                    width: { xs: 64, md: 72 },
+                    height: { xs: 64, md: 72 },
+                    border: `3px solid ${tickahub.gold}`,
+                    background: isArtist ? cyanGradient : goldGradient,
+                    color: tickahub.navy,
+                    fontWeight: 800,
+                    fontSize: "1.25rem",
                   }}
                 >
-                  <Business sx={{ fontSize: 60 }} />
+                  {getInitials(displayName)}
                 </Avatar>
-                {editMode && (
-                  <IconButton
-                    component="label"
-                    sx={{
-                      position: "absolute",
-                      bottom: 5,
-                      right: 5,
-                      background: "white",
-                      color: "#667eea",
-                      "&:hover": {
-                        background: "#f0f0f0",
-                      },
-                    }}
-                  >
-                    <PhotoCamera />
-                    <input
-                      type="file"
-                      hidden
-                      accept="image/*"
-                      onChange={handleLogoChange}
-                    />
-                  </IconButton>
-                )}
-              </Box>
-
-              {/* Organization Name and Status */}
-              <Box sx={{ flex: 1 }}>
-                <Typography variant="h4" sx={{ fontWeight: 700, mb: 2 }}>
-                  {profileData.organization_name}
-                </Typography>
-                <Chip
-                  icon={getStatusIcon(profileData.status)}
-                  label={profileData.status?.toUpperCase()}
-                  color={getStatusColor(profileData.status)}
+                <IconButton
+                  size="small"
+                  disabled={photoUploading}
+                  onClick={() => fileInputRef.current?.click()}
                   sx={{
-                    fontWeight: 600,
-                    fontSize: "1rem",
-                    px: 3,
-                    py: 1.5,
-                    height: "auto",
+                    position: "absolute",
+                    right: -4,
+                    bottom: -4,
+                    bgcolor: tickahub.cyan,
+                    color: tickahub.navy,
+                    width: 28,
+                    height: 28,
+                    border: `2px solid ${tickahub.surface}`,
+                    "&:hover": { bgcolor: tickahub.cyanDark },
                   }}
+                >
+                  {photoUploading ? <CircularProgress size={14} color="inherit" /> : <PhotoCameraIcon sx={{ fontSize: 16 }} />}
+                </IconButton>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept={ACCEPTED_IMAGE_TYPES.join(",")}
+                  hidden
+                  onChange={handlePhotoSelect}
                 />
               </Box>
-            </Box>
-          </Card>
-
-          {/* Organization Information - Full Width */}
-          <Card
-            sx={{
-              p: 3,
-              borderRadius: 3,
-              background: "rgba(102, 126, 234, 0.05)",
-              border: "1px solid rgba(102, 126, 234, 0.1)",
-              mb: 3,
-            }}
-          >
-            <Typography
-              variant="h6"
-              sx={{ fontWeight: 700, mb: 3, color: "#667eea" }}
-            >
-              Organization Information
-            </Typography>
-            <Stack spacing={3}>
-              <TextField
-                fullWidth
-                label="Organization Name"
-                value={profileData.organization_name}
-                onChange={(e) =>
-                  handleInputChange("organization_name", e.target.value)
-                }
-                disabled={!editMode}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Business sx={{ color: "#667eea" }} />
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: 2,
-                    background: editMode ? "white" : "rgba(0, 0, 0, 0.02)",
-                  },
-                }}
-              />
-              <TextField
-                fullWidth
-                label="Contact Person"
-                value={profileData.contact_person}
-                onChange={(e) =>
-                  handleInputChange("contact_person", e.target.value)
-                }
-                disabled={!editMode}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Person sx={{ color: "#667eea" }} />
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: 2,
-                    background: editMode ? "white" : "rgba(0, 0, 0, 0.02)",
-                  },
-                }}
-              />
-              <TextField
-                fullWidth
-                label="Email Address"
-                value={profileData.email}
-                onChange={(e) => handleInputChange("email", e.target.value)}
-                disabled={!editMode}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Email sx={{ color: "#667eea" }} />
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: 2,
-                    background: editMode ? "white" : "rgba(0, 0, 0, 0.02)",
-                  },
-                }}
-              />
-              <TextField
-                fullWidth
-                label="Phone Number"
-                value={profileData.phone_number}
-                onChange={(e) =>
-                  handleInputChange("phone_number", e.target.value)
-                }
-                disabled={!editMode}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Phone sx={{ color: "#667eea" }} />
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: 2,
-                    background: editMode ? "white" : "rgba(0, 0, 0, 0.02)",
-                  },
-                }}
-              />
+              <Box sx={{ minWidth: 0 }}>
+                <Box sx={{ display: { xs: "none", md: "block" } }}>{profileTitle}</Box>
+                <Typography sx={{ color: tickahub.textMuted, fontSize: "0.85rem" }}>
+                  {displayName}
+                  {!isArtist && profile.organizer_status ? ` · ${profile.organizer_status}` : ""}
+                </Typography>
+                <Typography sx={{ color: tickahub.textMuted, fontSize: "0.75rem", mt: 0.25 }}>
+                  Last login: {formatDate(profile.lastLogin)}
+                </Typography>
+                <Stack direction="row" spacing={1} mt={1} flexWrap="wrap" useFlexGap>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    disabled={photoUploading}
+                    onClick={() => fileInputRef.current?.click()}
+                    startIcon={<PhotoCameraIcon />}
+                    sx={{
+                      textTransform: "none",
+                      fontWeight: 600,
+                      fontSize: "0.75rem",
+                      color: tickahub.cyan,
+                      borderColor: `${tickahub.cyan}55`,
+                      "&:hover": { borderColor: tickahub.cyan, bgcolor: `${tickahub.cyan}10` },
+                    }}
+                  >
+                    {hasPhoto ? "Change photo" : "Add photo"}
+                  </Button>
+                  {hasPhoto && (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      disabled={photoUploading}
+                      onClick={handleRemovePhoto}
+                      startIcon={<DeletePhotoIcon />}
+                      sx={{
+                        textTransform: "none",
+                        fontWeight: 600,
+                        fontSize: "0.75rem",
+                        color: "#ff8a8a",
+                        borderColor: "rgba(255,138,138,0.4)",
+                        "&:hover": { borderColor: "#ff8a8a", bgcolor: "rgba(255,138,138,0.08)" },
+                      }}
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </Stack>
+              </Box>
             </Stack>
-          </Card>
 
-          {/* Additional Details */}
-          <Card
-            sx={{
-              p: 3,
-              borderRadius: 3,
-              background: "rgba(102, 126, 234, 0.05)",
-              border: "1px solid rgba(102, 126, 234, 0.1)",
-              mb: 3,
-            }}
-          >
-            <Typography
-              variant="h6"
-              sx={{ fontWeight: 700, mb: 3, color: "#667eea" }}
+            <Stack
+              direction="row"
+              spacing={1}
+              flexWrap="wrap"
+              sx={{ display: { xs: "none", md: "flex" }, flexShrink: 0 }}
             >
-              Business Details
-            </Typography>
-            <Stack spacing={3}>
-              <TextField
-                fullWidth
-                label="Address"
-                value={profileData.address}
-                onChange={(e) => handleInputChange("address", e.target.value)}
-                disabled={!editMode}
-                multiline
-                rows={2}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <LocationOn sx={{ color: "#667eea" }} />
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: 2,
-                    background: editMode ? "white" : "rgba(0, 0, 0, 0.02)",
-                  },
-                }}
-              />
-              <TextField
-                fullWidth
-                label="KRA PIN"
-                value={profileData.kra_pin}
-                onChange={(e) => handleInputChange("kra_pin", e.target.value)}
-                disabled={!editMode}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <CreditCard sx={{ color: "#667eea" }} />
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: 2,
-                    background: editMode ? "white" : "rgba(0, 0, 0, 0.02)",
-                  },
-                }}
-              />
-              <TextField
-                fullWidth
-                label="Website"
-                value={profileData.website}
-                onChange={(e) => handleInputChange("website", e.target.value)}
-                disabled={!editMode}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Language sx={{ color: "#667eea" }} />
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: 2,
-                    background: editMode ? "white" : "rgba(0, 0, 0, 0.02)",
-                  },
-                }}
-              />
+              {profileHeaderActions}
             </Stack>
-          </Card>
-
-          {/* Banking & Payment Details */}
-          <Card
-            sx={{
-              p: 3,
-              borderRadius: 3,
-              background: "rgba(102, 126, 234, 0.05)",
-              border: "1px solid rgba(102, 126, 234, 0.1)",
-            }}
-          >
-            <Typography
-              variant="h6"
-              sx={{ fontWeight: 700, mb: 3, color: "#667eea" }}
-            >
-              Banking & Payment Information
-            </Typography>
-            <Stack spacing={3}>
-              <TextField
-                fullWidth
-                label="Bank Name"
-                value={profileData.bank_name}
-                onChange={(e) => handleInputChange("bank_name", e.target.value)}
-                disabled={!editMode}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <AccountBalance sx={{ color: "#667eea" }} />
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: 2,
-                    background: editMode ? "white" : "rgba(0, 0, 0, 0.02)",
-                  },
-                }}
-              />
-              <TextField
-                fullWidth
-                label="Bank Account Number"
-                value={profileData.bank_account_number}
-                onChange={(e) =>
-                  handleInputChange("bank_account_number", e.target.value)
-                }
-                disabled={!editMode}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <CreditCard sx={{ color: "#667eea" }} />
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: 2,
-                    background: editMode ? "white" : "rgba(0, 0, 0, 0.02)",
-                  },
-                }}
-              />
-              <TextField
-                fullWidth
-                label="Pesapal Merchant Reference"
-                value={profileData.pesapal_merchant_ref}
-                onChange={(e) =>
-                  handleInputChange("pesapal_merchant_ref", e.target.value)
-                }
-                disabled={!editMode}
-                helperText="Your Pesapal merchant reference for payment processing"
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <CreditCard sx={{ color: "#667eea" }} />
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: 2,
-                    background: editMode ? "white" : "rgba(0, 0, 0, 0.02)",
-                  },
-                }}
-              />
-            </Stack>
-          </Card>
-        </Box>
+          </Stack>
+        </Stack>
       </Paper>
+
+      <Box sx={cardsRowSx}>
+        {isArtist ? (
+          <>
+            <ProfileCard
+              headerBg={`linear-gradient(135deg, ${tickahub.gold}22, transparent)`}
+              icon={MusicIcon}
+              iconColor={tickahub.gold}
+              title="Artist profile"
+              subtitle="Stage identity and contact details"
+            >
+              <Stack spacing={1.5}>
+                {editMode ? (
+                  <>
+                    <TextField
+                      label="stage_name"
+                      size="small"
+                      fullWidth
+                      value={profile.stage_name}
+                      onChange={(e) => setField("stage_name", e.target.value)}
+                      sx={fieldSx}
+                    />
+                    <TextField
+                      label="full_name"
+                      size="small"
+                      fullWidth
+                      value={profile.full_name}
+                      onChange={(e) => setField("full_name", e.target.value)}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <PersonIcon sx={{ color: tickahub.textMuted, fontSize: 18 }} />
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={fieldSx}
+                    />
+                    <TextField label="email" size="small" fullWidth value={profile.email} disabled sx={fieldSx} />
+                    <TextField
+                      label="phone"
+                      size="small"
+                      fullWidth
+                      value={profile.phone}
+                      onChange={(e) => setField("phone", e.target.value)}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <PhoneIcon sx={{ color: tickahub.textMuted, fontSize: 18 }} />
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={fieldSx}
+                    />
+                    <TextField
+                      label="genre"
+                      size="small"
+                      fullWidth
+                      value={profile.genre}
+                      onChange={(e) => setField("genre", e.target.value)}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <MusicIcon sx={{ color: tickahub.textMuted, fontSize: 18 }} />
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={fieldSx}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <ViewField label="stage_name" value={profile.stage_name} />
+                    <ViewField label="full_name" value={profile.full_name} />
+                    <ViewField label="email" value={profile.email} />
+                    <ViewField label="phone" value={profile.phone} />
+                    <ViewField label="genre" value={profile.genre} />
+                  </>
+                )}
+                <MetaChips roleLabel={roleLabel} isActive={profile.isActive} />
+              </Stack>
+            </ProfileCard>
+
+            <ProfileCard
+              headerBg={`linear-gradient(135deg, ${tickahub.cyan}22, transparent)`}
+              icon={BioIcon}
+              iconColor={tickahub.cyan}
+              title="About"
+              subtitle="Tell fans about yourself"
+            >
+              <Stack spacing={1.5}>
+                {editMode ? (
+                  <TextField
+                    label="bio"
+                    size="small"
+                    fullWidth
+                    multiline
+                    minRows={4}
+                    value={profile.bio}
+                    onChange={(e) => setField("bio", e.target.value)}
+                    placeholder="Your story, style, and what fans can expect..."
+                    sx={fieldSx}
+                  />
+                ) : (
+                  <ViewField label="bio" value={profile.bio} multiline />
+                )}
+              </Stack>
+            </ProfileCard>
+          </>
+        ) : (
+          <>
+            <ProfileCard
+              headerBg={`linear-gradient(135deg, ${tickahub.gold}22, transparent)`}
+              icon={BusinessIcon}
+              iconColor={tickahub.gold}
+              title="Organization"
+              subtitle="Company and contact information"
+            >
+              <Stack spacing={1.5}>
+                {editMode ? (
+                  <>
+                    <TextField
+                      label="organization_name"
+                      size="small"
+                      fullWidth
+                      value={profile.organization_name}
+                      onChange={(e) => setField("organization_name", e.target.value)}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <BusinessIcon sx={{ color: tickahub.textMuted, fontSize: 18 }} />
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={fieldSx}
+                    />
+                    <TextField
+                      label="full_name"
+                      size="small"
+                      fullWidth
+                      value={profile.full_name}
+                      onChange={(e) => setField("full_name", e.target.value)}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <PersonIcon sx={{ color: tickahub.textMuted, fontSize: 18 }} />
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={fieldSx}
+                    />
+                    <TextField
+                      label="email"
+                      size="small"
+                      fullWidth
+                      value={profile.email}
+                      disabled
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <EmailIcon sx={{ color: tickahub.textMuted, fontSize: 18 }} />
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={fieldSx}
+                    />
+                    <TextField
+                      label="phone"
+                      size="small"
+                      fullWidth
+                      value={profile.phone}
+                      onChange={(e) => setField("phone", e.target.value)}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <PhoneIcon sx={{ color: tickahub.textMuted, fontSize: 18 }} />
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={fieldSx}
+                    />
+                    <TextField
+                      label="address"
+                      size="small"
+                      fullWidth
+                      multiline
+                      minRows={2}
+                      value={profile.address}
+                      onChange={(e) => setField("address", e.target.value)}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <LocationIcon sx={{ color: tickahub.textMuted, fontSize: 18 }} />
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={fieldSx}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <ViewField label="organization_name" value={profile.organization_name} />
+                    <ViewField label="full_name" value={profile.full_name} />
+                    <ViewField label="email" value={profile.email} />
+                    <ViewField label="phone" value={profile.phone} />
+                    <ViewField label="address" value={profile.address} multiline />
+                  </>
+                )}
+                <MetaChips
+                  roleLabel={roleLabel}
+                  isActive={profile.isActive}
+                  organizerStatus={profile.organizer_status}
+                />
+              </Stack>
+            </ProfileCard>
+
+            <ProfileCard
+              headerBg={`linear-gradient(135deg, ${tickahub.cyan}22, transparent)`}
+              icon={BankIcon}
+              iconColor={tickahub.cyan}
+              title="Business & payments"
+              subtitle="Tax, banking, and payout details"
+            >
+              <Stack spacing={1.5}>
+                {editMode ? (
+                  <>
+                    <TextField
+                      label="kra_pin"
+                      size="small"
+                      fullWidth
+                      value={profile.kra_pin}
+                      onChange={(e) => setField("kra_pin", e.target.value)}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <CreditCardIcon sx={{ color: tickahub.textMuted, fontSize: 18 }} />
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={fieldSx}
+                    />
+                    <TextField
+                      label="bank_name"
+                      size="small"
+                      fullWidth
+                      value={profile.bank_name}
+                      onChange={(e) => setField("bank_name", e.target.value)}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <BankIcon sx={{ color: tickahub.textMuted, fontSize: 18 }} />
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={fieldSx}
+                    />
+                    <TextField
+                      label="bank_account_number"
+                      size="small"
+                      fullWidth
+                      value={profile.bank_account_number}
+                      onChange={(e) => setField("bank_account_number", e.target.value)}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <CreditCardIcon sx={{ color: tickahub.textMuted, fontSize: 18 }} />
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={fieldSx}
+                    />
+                    <TextField
+                      label="pesapal_merchant_ref"
+                      size="small"
+                      fullWidth
+                      value={profile.pesapal_merchant_ref}
+                      onChange={(e) => setField("pesapal_merchant_ref", e.target.value)}
+                      helperText="Pesapal merchant reference for payment processing"
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <CreditCardIcon sx={{ color: tickahub.textMuted, fontSize: 18 }} />
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={fieldSx}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <ViewField label="kra_pin" value={profile.kra_pin} />
+                    <ViewField label="bank_name" value={profile.bank_name} />
+                    <ViewField label="bank_account_number" value={profile.bank_account_number} />
+                    <ViewField label="pesapal_merchant_ref" value={profile.pesapal_merchant_ref} />
+                  </>
+                )}
+              </Stack>
+            </ProfileCard>
+          </>
+        )}
+      </Box>
     </Box>
   );
-};
+}
 
-export default MyProfile;
+function MetaChips({ roleLabel, isActive, organizerStatus }) {
+  return (
+    <Box>
+      <Typography variant="caption" sx={{ color: tickahub.textMuted, fontFamily: "monospace" }}>
+        account
+      </Typography>
+      <Box mt={0.5} sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+        <Chip
+          label={roleLabel}
+          size="small"
+          sx={{ bgcolor: `${tickahub.gold}22`, color: tickahub.gold, fontWeight: 700, height: 24 }}
+        />
+        {organizerStatus && (
+          <Chip
+            label={organizerStatus}
+            size="small"
+            sx={{
+              bgcolor: `${statusChipColor(organizerStatus)}22`,
+              color: statusChipColor(organizerStatus),
+              fontWeight: 700,
+              height: 24,
+            }}
+          />
+        )}
+        <Chip
+          label={isActive ? "active" : "inactive"}
+          size="small"
+          sx={{
+            bgcolor: isActive ? `${tickahub.cyan}22` : "rgba(255,107,107,0.15)",
+            color: isActive ? tickahub.cyan : "#ff6b6b",
+            fontWeight: 700,
+            height: 24,
+          }}
+        />
+      </Box>
+    </Box>
+  );
+}

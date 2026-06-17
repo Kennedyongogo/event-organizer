@@ -1,37 +1,42 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Box,
   Typography,
-  Card,
-  CardContent,
-  Grid,
   Button,
   TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Stack,
   CircularProgress,
-  Alert,
-  Container,
+  Chip,
+  Divider,
   IconButton,
-  InputAdornment,
+  alpha,
 } from "@mui/material";
 import {
   ArrowBack as ArrowBackIcon,
   Save as SaveIcon,
   Event as EventIcon,
-  LocationOn as LocationIcon,
-  Schedule,
-  Category as CategoryIcon,
-  AttachMoney as MoneyIcon,
   Close as CloseIcon,
-  Image as ImageIcon,
-  Add,
+  Add as AddIcon,
 } from "@mui/icons-material";
 import Swal from "sweetalert2";
+import {
+  tickahub,
+  swalDark,
+  fieldSx,
+  pageShellSx,
+  primaryButtonSx,
+  secondaryButtonSx,
+  SectionCard,
+  SectionLabel,
+  PageHeader,
+  eventStatusColor,
+} from "../shared/tickahubPageStyles";
+import EventDateTimeFields from "./EventDateTimeFields";
+import VenueMapPicker from "./VenueMapPicker";
+import EventCategorySelect from "./EventCategorySelect";
+import { appendEventScheduleFields, parseDateValue, parseTimeValue } from "./eventFormPickers";
+import { getTicketTierValidation } from "./ticketTierValidation";
 
 const EventEdit = () => {
   const { id } = useParams();
@@ -40,88 +45,35 @@ const EventEdit = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [eventDate, setEventDate] = useState(null);
+  const [startTime, setStartTime] = useState(null);
+  const [endTime, setEndTime] = useState(null);
 
   const [eventForm, setEventForm] = useState({
     title: "",
     description: "",
     venue: "",
-    county: "",
-    sub_county: "",
-    event_date: "",
-    start_time: "",
-    end_time: "",
+    venue_latitude: "",
+    venue_longitude: "",
     category: "",
     commission_rate: 10.0,
+    tickets_available: "",
     status: "pending",
   });
-
+  const [ticketPrices, setTicketPrices] = useState([{ category: "", price: "", quantity: "" }]);
   const [selectedFile, setSelectedFile] = useState(null);
   const [filePreview, setFilePreview] = useState("");
   const [currentImage, setCurrentImage] = useState("");
 
-  const categoryOptions = [
-    { value: "Music", label: "Music" },
-    { value: "Sports", label: "Sports" },
-    { value: "Conference", label: "Conference" },
-    { value: "Workshop", label: "Workshop" },
-    { value: "Festival", label: "Festival" },
-    { value: "Exhibition", label: "Exhibition" },
-    { value: "Theater", label: "Theater" },
-    { value: "Comedy", label: "Comedy" },
-    { value: "Other", label: "Other" },
-  ];
+  const ticketValidation = useMemo(
+    () => getTicketTierValidation(eventForm.tickets_available, ticketPrices),
+    [eventForm.tickets_available, ticketPrices]
+  );
 
-  const countyOptions = [
-    { value: "Baringo", label: "Baringo" },
-    { value: "Bomet", label: "Bomet" },
-    { value: "Bungoma", label: "Bungoma" },
-    { value: "Busia", label: "Busia" },
-    { value: "Elgeyo-Marakwet", label: "Elgeyo-Marakwet" },
-    { value: "Embu", label: "Embu" },
-    { value: "Garissa", label: "Garissa" },
-    { value: "Homa Bay", label: "Homa Bay" },
-    { value: "Isiolo", label: "Isiolo" },
-    { value: "Kajiado", label: "Kajiado" },
-    { value: "Kakamega", label: "Kakamega" },
-    { value: "Kericho", label: "Kericho" },
-    { value: "Kiambu", label: "Kiambu" },
-    { value: "Kilifi", label: "Kilifi" },
-    { value: "Kirinyaga", label: "Kirinyaga" },
-    { value: "Kisii", label: "Kisii" },
-    { value: "Kisumu", label: "Kisumu" },
-    { value: "Kitui", label: "Kitui" },
-    { value: "Kwale", label: "Kwale" },
-    { value: "Laikipia", label: "Laikipia" },
-    { value: "Lamu", label: "Lamu" },
-    { value: "Machakos", label: "Machakos" },
-    { value: "Makueni", label: "Makueni" },
-    { value: "Mandera", label: "Mandera" },
-    { value: "Marsabit", label: "Marsabit" },
-    { value: "Meru", label: "Meru" },
-    { value: "Migori", label: "Migori" },
-    { value: "Mombasa", label: "Mombasa" },
-    { value: "Murang'a", label: "Murang'a" },
-    { value: "Nairobi", label: "Nairobi" },
-    { value: "Nakuru", label: "Nakuru" },
-    { value: "Nandi", label: "Nandi" },
-    { value: "Narok", label: "Narok" },
-    { value: "Nyamira", label: "Nyamira" },
-    { value: "Nyandarua", label: "Nyandarua" },
-    { value: "Nyeri", label: "Nyeri" },
-    { value: "Samburu", label: "Samburu" },
-    { value: "Siaya", label: "Siaya" },
-    { value: "Taita-Taveta", label: "Taita-Taveta" },
-    { value: "Tana River", label: "Tana River" },
-    { value: "Tharaka-Nithi", label: "Tharaka-Nithi" },
-    { value: "Trans Nzoia", label: "Trans Nzoia" },
-    { value: "Turkana", label: "Turkana" },
-    { value: "Uasin Gishu", label: "Uasin Gishu" },
-    { value: "Vihiga", label: "Vihiga" },
-    { value: "Wajir", label: "Wajir" },
-    { value: "West Pokot", label: "West Pokot" },
-  ];
+  useEffect(() => {
+    fetchEvent();
+  }, [id]);
 
-  // Helper to build URL for uploaded assets
   const buildImageUrl = (imageUrl) => {
     if (!imageUrl) return "";
     if (imageUrl.startsWith("http")) return imageUrl;
@@ -130,582 +82,359 @@ const EventEdit = () => {
     return imageUrl;
   };
 
-  useEffect(() => {
-    fetchEvent();
-  }, [id]);
-
   const fetchEvent = async () => {
     try {
       setLoading(true);
       setError(null);
       const token = localStorage.getItem("token");
-
       if (!token) {
         setError("No authentication token found. Please login again.");
         return;
       }
 
       const response = await fetch(`/api/events/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
-
       const result = await response.json();
 
       if (response.ok && result.success) {
-        setEvent(result.data);
+        const data = result.data;
+        setEvent(data);
         setEventForm({
-          title: result.data.event_name || result.data.title || "",
-          description: result.data.description || "",
-          venue: result.data.venue || "",
-          county: result.data.county || "",
-          sub_county: result.data.sub_county || "",
-          event_date: result.data.event_date
-            ? result.data.event_date.split("T")[0]
-            : "",
-          start_time: result.data.start_time || "",
-          end_time: result.data.end_time || "",
-          category: result.data.category || "",
-          commission_rate: result.data.commission_rate || 10.0,
-          status: result.data.status || "pending",
+          title: data.event_name || data.title || "",
+          description: data.description || "",
+          venue: data.venue || "",
+          venue_latitude: data.venue_latitude ?? "",
+          venue_longitude: data.venue_longitude ?? "",
+          category: data.category || "",
+          commission_rate: data.commission_rate || 10.0,
+          tickets_available: data.tickets_available ?? "",
+          status: data.status || "pending",
         });
-        setCurrentImage(result.data.image_url || result.data.image || "");
+        setEventDate(parseDateValue(data.event_date));
+        setStartTime(parseTimeValue(data.start_time));
+        setEndTime(parseTimeValue(data.end_time));
+
+        const tiers = Array.isArray(data.ticket_prices) ? data.ticket_prices : [];
+        setTicketPrices(
+          tiers.length
+            ? tiers.map((t) => ({
+                category: t.category || "",
+                price: t.price ?? "",
+                quantity: t.quantity ?? "",
+              }))
+            : [{ category: "", price: "", quantity: "" }]
+        );
+        setCurrentImage(data.image_url || data.image || "");
       } else {
         setError(result.message || "Failed to fetch event details");
       }
     } catch (err) {
       setError("Failed to fetch event details");
-      console.error("Error fetching event:", err);
     } finally {
       setLoading(false);
     }
   };
 
   const handleInputChange = (field, value) => {
+    setEventForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleLocationChange = ({ venue, venue_latitude, venue_longitude }) => {
     setEventForm((prev) => ({
       ...prev,
-      [field]: value,
+      venue: venue ?? prev.venue,
+      venue_latitude: venue_latitude ?? prev.venue_latitude,
+      venue_longitude: venue_longitude ?? prev.venue_longitude,
     }));
   };
 
-  const handleFileSelect = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      setSelectedFile(file);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setFilePreview(e.target.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const removeSelectedFile = () => {
-    setSelectedFile(null);
-    setFilePreview("");
+  const handleFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setSelectedFile(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => setFilePreview(ev.target.result);
+    reader.readAsDataURL(file);
   };
 
   const handleSave = async () => {
+    if (!ticketValidation.isValid) {
+      Swal.fire({
+        title: "Ticket quantities invalid",
+        text: ticketValidation.submitError || ticketValidation.ticketsAvailableError || "Check tier quantities against total tickets available.",
+        icon: "error",
+        ...swalDark,
+      });
+      return;
+    }
+
     try {
       setSaving(true);
-
       const formData = new FormData();
 
-      // Add all event form fields
       Object.keys(eventForm).forEach((key) => {
-        if (eventForm[key] !== null && eventForm[key] !== undefined) {
+        if (eventForm[key] !== null && eventForm[key] !== undefined && eventForm[key] !== "") {
           formData.append(key, eventForm[key]);
         }
       });
 
-      // Add image file if selected
-      if (selectedFile) {
-        formData.append("event_image", selectedFile);
-      }
+      appendEventScheduleFields(formData, eventDate, startTime, endTime);
+
+      const tiers = ticketPrices
+        .filter((t) => t.category && t.price !== "")
+        .map((t) => ({
+          category: t.category,
+          price: parseFloat(t.price),
+          ...(t.quantity !== "" ? { quantity: parseInt(t.quantity, 10) } : {}),
+        }));
+      formData.append("ticket_prices", JSON.stringify(tiers));
+      if (selectedFile) formData.append("event_image", selectedFile);
 
       const token = localStorage.getItem("token");
       const response = await fetch(`/api/events/${id}`, {
         method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
-
       const result = await response.json();
 
       if (result.success) {
         await Swal.fire({
-          title: "Success!",
-          text: "Event updated successfully!",
+          title: "Event updated",
           icon: "success",
           timer: 1500,
           showConfirmButton: false,
+          ...swalDark,
         });
         navigate(`/events/${id}`);
       } else {
         throw new Error(result.message || "Failed to update event");
       }
-    } catch (error) {
-      console.error("Error updating event:", error);
-      await Swal.fire({
-        title: "Error!",
-        text: error.message || "Failed to update event",
-        icon: "error",
-        confirmButtonColor: "#667eea",
-      });
+    } catch (err) {
+      Swal.fire({ title: "Update failed", text: err.message, icon: "error", ...swalDark });
     } finally {
       setSaving(false);
     }
   };
 
-  const isFormValid = () => {
-    return (
-      eventForm.title.trim() !== "" &&
-      eventForm.venue.trim() !== "" &&
-      eventForm.event_date !== "" &&
-      eventForm.start_time !== "" &&
-      eventForm.category !== ""
-    );
-  };
+  const isFormValid = () =>
+    eventForm.title.trim() &&
+    eventForm.venue.trim() &&
+    eventDate?.isValid() &&
+    startTime?.isValid() &&
+    eventForm.category &&
+    ticketValidation.isValid;
+
+  const displayImage = filePreview || buildImageUrl(currentImage);
 
   if (loading) {
     return (
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        height="50vh"
-      >
-        <CircularProgress />
+      <Box sx={{ ...pageShellSx, alignItems: "center", justifyContent: "center", minHeight: 280 }}>
+        <CircularProgress sx={{ color: tickahub.cyan }} />
       </Box>
     );
   }
 
-  if (error) {
+  if (error || !event) {
     return (
-      <Container maxWidth="md" sx={{ mt: 4 }}>
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-        <Button
-          variant="outlined"
-          startIcon={<ArrowBackIcon />}
-          onClick={() => navigate("/events")}
-        >
-          Back to Events
+      <Box sx={pageShellSx}>
+        <Typography sx={{ color: "#ff6b6b", mb: 2 }}>{error || "Event not found"}</Typography>
+        <Button variant="outlined" size="small" startIcon={<ArrowBackIcon />} onClick={() => navigate("/events")} sx={secondaryButtonSx}>
+          Back to events
         </Button>
-      </Container>
-    );
-  }
-
-  if (!event) {
-    return (
-      <Container maxWidth="md" sx={{ mt: 4 }}>
-        <Alert severity="warning" sx={{ mb: 2 }}>
-          Event not found
-        </Alert>
-        <Button
-          variant="outlined"
-          startIcon={<ArrowBackIcon />}
-          onClick={() => navigate("/events")}
-        >
-          Back to Events
-        </Button>
-      </Container>
+      </Box>
     );
   }
 
   return (
-    <Box
-      sx={{
-        background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
-        minHeight: "100vh",
-        py: 3,
-      }}
-    >
-      <Container maxWidth="lg" sx={{ px: 0 }}>
-        {/* Header */}
-        <Box
-          sx={{
-            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-            p: 3,
-            color: "white",
-            position: "relative",
-            overflow: "hidden",
-          }}
-        >
-          <Box
-            sx={{
-              position: "absolute",
-              top: -50,
-              right: -50,
-              width: 200,
-              height: 200,
-              background: "rgba(255, 255, 255, 0.1)",
-              borderRadius: "50%",
-              zIndex: 0,
-            }}
-          />
-          <Box
-            sx={{
-              position: "absolute",
-              bottom: -30,
-              left: -30,
-              width: 150,
-              height: 150,
-              background: "rgba(255, 255, 255, 0.05)",
-              borderRadius: "50%",
-              zIndex: 0,
-            }}
-          />
-          <Box
-            display="flex"
-            justifyContent="space-between"
-            alignItems="center"
-            position="relative"
-            zIndex={1}
-          >
-            <Box display="flex" alignItems="center" gap={2}>
-              <Button
-                variant="outlined"
-                startIcon={<ArrowBackIcon />}
-                onClick={() => navigate(`/events/${id}`)}
-                sx={{
-                  color: "white",
-                  borderColor: "rgba(255, 255, 255, 0.3)",
-                  "&:hover": {
-                    borderColor: "rgba(255, 255, 255, 0.5)",
-                    backgroundColor: "rgba(255, 255, 255, 0.1)",
-                  },
-                }}
-              >
-                Back
-              </Button>
-              <Box>
-                <Typography
-                  variant="h4"
-                  sx={{
-                    fontWeight: 800,
-                    mb: 1,
-                    textShadow: "0 2px 4px rgba(0,0,0,0.3)",
-                  }}
-                >
-                  Edit Event
-                </Typography>
-                <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                  {event.event_name || event.title}
-                </Typography>
-              </Box>
-            </Box>
-            <Button
-              variant="contained"
-              startIcon={<SaveIcon />}
-              onClick={handleSave}
-              disabled={!isFormValid() || saving}
+    <Box sx={pageShellSx}>
+      <PageHeader
+        icon={EventIcon}
+        title="Edit event"
+        subtitle={eventForm.title || "Update event details"}
+        inlineActionOnMobile
+        hideSubtitleOnMobile
+        action={
+          <Stack direction="row" spacing={0.5} alignItems="center" flexWrap="nowrap" sx={{ flexShrink: 0 }}>
+            <Chip
+              label={eventForm.status}
+              size="small"
               sx={{
-                backgroundColor: "rgba(255, 255, 255, 0.2)",
-                color: "white",
-                border: "1px solid rgba(255, 255, 255, 0.3)",
-                "&:hover": {
-                  backgroundColor: "rgba(255, 255, 255, 0.3)",
-                },
-                "&:disabled": {
-                  backgroundColor: "rgba(255, 255, 255, 0.1)",
-                  color: "rgba(255, 255, 255, 0.5)",
-                },
+                bgcolor: `${eventStatusColor(eventForm.status)}22`,
+                color: eventStatusColor(eventForm.status),
+                fontWeight: 700,
+                textTransform: "capitalize",
+                height: 24,
+                "& .MuiChip-label": { px: 1, fontSize: "0.68rem" },
+              }}
+            />
+            <IconButton
+              size="small"
+              onClick={() => navigate(`/events/${id}`)}
+              aria-label="Cancel editing"
+              sx={{
+                display: { xs: "inline-flex", md: "none" },
+                color: tickahub.textMuted,
+                bgcolor: alpha("#fff", 0.06),
+                borderRadius: 2,
+                border: `1px solid ${tickahub.borderSubtle}`,
+                "&:hover": { bgcolor: alpha("#fff", 0.1) },
               }}
             >
-              {saving ? "Saving..." : "Save Changes"}
+              <CloseIcon fontSize="small" />
+            </IconButton>
+            <IconButton
+              size="small"
+              onClick={() => navigate("/events")}
+              aria-label="Back to events"
+              sx={{
+                display: { xs: "inline-flex", md: "none" },
+                color: tickahub.textMuted,
+                bgcolor: alpha("#fff", 0.06),
+                borderRadius: 2,
+                border: `1px solid ${tickahub.borderSubtle}`,
+                "&:hover": { bgcolor: alpha("#fff", 0.1) },
+              }}
+            >
+              <ArrowBackIcon fontSize="small" />
+            </IconButton>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<CloseIcon />}
+              onClick={() => navigate(`/events/${id}`)}
+              sx={{ ...secondaryButtonSx, display: { xs: "none", md: "inline-flex" } }}
+            >
+              Cancel
             </Button>
-          </Box>
-        </Box>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<ArrowBackIcon />}
+              onClick={() => navigate("/events")}
+              sx={{ ...secondaryButtonSx, display: { xs: "none", md: "inline-flex" } }}
+            >
+              Back
+            </Button>
+          </Stack>
+        }
+      />
 
-        {/* Content */}
-        <Box sx={{ p: 3 }}>
-          <Grid container spacing={3} sx={{ flexDirection: "column" }}>
-            {/* Event Information */}
-            <Grid item xs={12}>
-              <Card
-                sx={{
-                  backgroundColor: "white",
-                  boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
-                  border: "1px solid #e0e0e0",
+      <SectionCard
+        sx={{ width: "100%", flex: "none" }}
+        headerBg={`linear-gradient(135deg, ${alpha(tickahub.cyan, 0.14)}, transparent)`}
+        icon={EventIcon}
+        iconColor={tickahub.cyan}
+        title="Edit event"
+        subtitle="All fields in one form"
+      >
+        <Stack spacing={2.5} sx={{ width: "100%" }}>
+          <SectionLabel>Event details</SectionLabel>
+          <TextField label="title" size="small" fullWidth required value={eventForm.title} onChange={(e) => handleInputChange("title", e.target.value)} sx={fieldSx} />
+          <TextField label="description" size="small" fullWidth multiline minRows={3} value={eventForm.description} onChange={(e) => handleInputChange("description", e.target.value)} sx={fieldSx} />
+          <EventCategorySelect
+            value={eventForm.category}
+            onChange={(cat) => handleInputChange("category", cat)}
+            required
+          />
+
+          <Divider sx={{ borderColor: tickahub.borderSubtle }} />
+          <SectionLabel accent={tickahub.gold}>Date & time</SectionLabel>
+          <EventDateTimeFields
+            eventDate={eventDate}
+            onEventDateChange={setEventDate}
+            startTime={startTime}
+            onStartTimeChange={setStartTime}
+            endTime={endTime}
+            onEndTimeChange={setEndTime}
+          />
+          <TextField label="commission_rate" type="number" size="small" fullWidth value={eventForm.commission_rate} onChange={(e) => handleInputChange("commission_rate", parseFloat(e.target.value))} inputProps={{ min: 0, max: 50, step: 0.1 }} sx={fieldSx} />
+
+          <Divider sx={{ borderColor: tickahub.borderSubtle }} />
+          <SectionLabel>Venue & location</SectionLabel>
+          <VenueMapPicker
+            venue={eventForm.venue}
+            latitude={eventForm.venue_latitude}
+            longitude={eventForm.venue_longitude}
+            onLocationChange={handleLocationChange}
+            required
+          />
+
+          <Divider sx={{ borderColor: tickahub.borderSubtle }} />
+          <SectionLabel accent={tickahub.gold}>Tickets</SectionLabel>
+          <TextField
+            label="tickets_available"
+            type="number"
+            size="small"
+            fullWidth
+            required
+            value={eventForm.tickets_available}
+            onChange={(e) => handleInputChange("tickets_available", e.target.value)}
+            inputProps={{ min: 0, step: 1 }}
+            error={Boolean(ticketValidation.ticketsAvailableError)}
+            helperText={ticketValidation.ticketsAvailableError || ticketValidation.summary || "Total tickets for this event"}
+            sx={fieldSx}
+          />
+          {ticketPrices.map((tier, index) => (
+            <Stack key={index} spacing={1.5} sx={{ width: "100%", p: 1.5, borderRadius: 2, border: `1px solid ${ticketValidation.tierErrors[index] ? tickahub.gold : tickahub.borderSubtle}`, bgcolor: tickahub.navy }}>
+              <TextField label="tier category" size="small" fullWidth value={tier.category} onChange={(e) => { const next = [...ticketPrices]; next[index] = { ...next[index], category: e.target.value }; setTicketPrices(next); }} sx={fieldSx} />
+              <TextField label="price" type="number" size="small" fullWidth value={tier.price} onChange={(e) => { const next = [...ticketPrices]; next[index] = { ...next[index], price: e.target.value }; setTicketPrices(next); }} sx={fieldSx} />
+              <TextField
+                label="quantity"
+                type="number"
+                size="small"
+                fullWidth
+                value={tier.quantity}
+                onChange={(e) => { const next = [...ticketPrices]; next[index] = { ...next[index], quantity: e.target.value }; setTicketPrices(next); }}
+                inputProps={{
+                  min: 0,
+                  step: 1,
+                  ...(ticketValidation.ticketsAvailable != null ? { max: ticketValidation.ticketsAvailable } : {}),
                 }}
-              >
-                <CardContent>
-                  <Box display="flex" alignItems="center" gap={1} mb={3}>
-                    <EventIcon sx={{ color: "#667eea" }} />
-                    <Typography variant="h6" sx={{ color: "#333" }}>
-                      Event Information
-                    </Typography>
-                  </Box>
-                  <Stack spacing={3}>
-                    <TextField
-                      fullWidth
-                      label="Event Title"
-                      value={eventForm.title}
-                      onChange={(e) =>
-                        handleInputChange("title", e.target.value)
-                      }
-                      required
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <EventIcon sx={{ color: "#667eea" }} />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-                    <TextField
-                      fullWidth
-                      label="Description"
-                      multiline
-                      rows={3}
-                      value={eventForm.description}
-                      onChange={(e) =>
-                        handleInputChange("description", e.target.value)
-                      }
-                      placeholder="Describe your event in detail..."
-                    />
-                    <TextField
-                      fullWidth
-                      label="Venue"
-                      value={eventForm.venue}
-                      onChange={(e) =>
-                        handleInputChange("venue", e.target.value)
-                      }
-                      required
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <LocationIcon sx={{ color: "#667eea" }} />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-                    <FormControl fullWidth>
-                      <InputLabel>County</InputLabel>
-                      <Select
-                        value={eventForm.county}
-                        onChange={(e) =>
-                          handleInputChange("county", e.target.value)
-                        }
-                        label="County"
-                      >
-                        {countyOptions.map((option) => (
-                          <MenuItem key={option.value} value={option.value}>
-                            {option.label}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                    <TextField
-                      fullWidth
-                      label="Sub County"
-                      value={eventForm.sub_county}
-                      onChange={(e) =>
-                        handleInputChange("sub_county", e.target.value)
-                      }
-                    />
-                    <TextField
-                      fullWidth
-                      label="Event Date"
-                      type="date"
-                      value={eventForm.event_date}
-                      onChange={(e) =>
-                        handleInputChange("event_date", e.target.value)
-                      }
-                      InputLabelProps={{ shrink: true }}
-                      required
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <Schedule sx={{ color: "#667eea" }} />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-                    <TextField
-                      fullWidth
-                      label="Start Time"
-                      type="time"
-                      value={eventForm.start_time}
-                      onChange={(e) =>
-                        handleInputChange("start_time", e.target.value)
-                      }
-                      InputLabelProps={{ shrink: true }}
-                      required
-                    />
-                    <TextField
-                      fullWidth
-                      label="End Time"
-                      type="time"
-                      value={eventForm.end_time}
-                      onChange={(e) =>
-                        handleInputChange("end_time", e.target.value)
-                      }
-                      InputLabelProps={{ shrink: true }}
-                    />
-                    <FormControl fullWidth>
-                      <InputLabel>Category</InputLabel>
-                      <Select
-                        value={eventForm.category}
-                        onChange={(e) =>
-                          handleInputChange("category", e.target.value)
-                        }
-                        label="Category"
-                        required
-                      >
-                        {categoryOptions.map((option) => (
-                          <MenuItem key={option.value} value={option.value}>
-                            {option.label}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                    <TextField
-                      fullWidth
-                      label="Commission Rate (%)"
-                      type="number"
-                      value={eventForm.commission_rate}
-                      onChange={(e) =>
-                        handleInputChange(
-                          "commission_rate",
-                          parseFloat(e.target.value)
-                        )
-                      }
-                      inputProps={{ min: 0, max: 50, step: 0.1 }}
-                      helperText="Platform commission percentage (0-50%)"
-                    />
-                  </Stack>
-                </CardContent>
-              </Card>
-            </Grid>
+                error={Boolean(ticketValidation.tierErrors[index])}
+                helperText={
+                  ticketValidation.tierErrors[index] ||
+                  (ticketValidation.ticketsAvailable != null
+                    ? `Max ${ticketValidation.ticketsAvailable} for this event`
+                    : "Set tickets available first")
+                }
+                sx={fieldSx}
+              />
+              {ticketPrices.length > 1 && (
+                <Button size="small" startIcon={<CloseIcon />} onClick={() => setTicketPrices(ticketPrices.filter((_, i) => i !== index))} sx={{ color: tickahub.textMuted, textTransform: "none", alignSelf: "flex-start" }}>
+                  Remove tier
+                </Button>
+              )}
+            </Stack>
+          ))}
+          <Button size="small" startIcon={<AddIcon />} onClick={() => setTicketPrices([...ticketPrices, { category: "", price: "", quantity: "" }])} sx={{ color: tickahub.cyan, textTransform: "none", alignSelf: "flex-start" }}>
+            Add tier
+          </Button>
 
-            {/* Event Image */}
-            <Grid item xs={12}>
-              <Card
-                sx={{
-                  backgroundColor: "white",
-                  boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
-                  border: "1px solid #e0e0e0",
-                }}
-              >
-                <CardContent>
-                  <Box display="flex" alignItems="center" gap={1} mb={3}>
-                    <ImageIcon sx={{ color: "#fa709a" }} />
-                    <Typography variant="h6" sx={{ color: "#333" }}>
-                      Event Image
-                    </Typography>
-                  </Box>
+          <Divider sx={{ borderColor: tickahub.borderSubtle }} />
+          <SectionLabel>Cover image</SectionLabel>
+          {displayImage && (
+            <Box component="img" src={displayImage} alt="Event" sx={{ width: "100%", maxHeight: 240, objectFit: "cover", borderRadius: 2, border: `1px solid ${tickahub.borderSubtle}` }} />
+          )}
+          <Stack direction="row" spacing={1}>
+            <Button component="label" variant="outlined" size="small" sx={secondaryButtonSx}>
+              {displayImage ? "Replace image" : "Upload image"}
+              <input type="file" accept="image/*" hidden onChange={handleFileSelect} />
+            </Button>
+            {filePreview && (
+              <Button size="small" onClick={() => { setSelectedFile(null); setFilePreview(""); }} sx={{ color: tickahub.textMuted, textTransform: "none" }}>
+                Revert
+              </Button>
+            )}
+          </Stack>
 
-                  {/* Current Image */}
-                  {currentImage && !filePreview && (
-                    <Box mb={3}>
-                      <Typography variant="subtitle2" mb={2}>
-                        Current Image:
-                      </Typography>
-                      <Box
-                        sx={{
-                          position: "relative",
-                          borderRadius: 2,
-                          overflow: "hidden",
-                          border: "1px solid #e0e0e0",
-                        }}
-                      >
-                        <img
-                          src={buildImageUrl(currentImage)}
-                          alt="Current event"
-                          style={{
-                            width: "100%",
-                            height: "300px",
-                            objectFit: "cover",
-                          }}
-                        />
-                      </Box>
-                    </Box>
-                  )}
-
-                  {/* New Image Preview */}
-                  {filePreview && (
-                    <Box mb={3}>
-                      <Typography variant="subtitle2" mb={2}>
-                        New Image:
-                      </Typography>
-                      <Box
-                        sx={{
-                          position: "relative",
-                          borderRadius: 2,
-                          overflow: "hidden",
-                          border: "1px solid #e0e0e0",
-                        }}
-                      >
-                        <IconButton
-                          onClick={removeSelectedFile}
-                          sx={{
-                            position: "absolute",
-                            top: 8,
-                            right: 8,
-                            backgroundColor: "rgba(0, 0, 0, 0.5)",
-                            color: "white",
-                            "&:hover": {
-                              backgroundColor: "rgba(0, 0, 0, 0.7)",
-                            },
-                            zIndex: 2,
-                          }}
-                          size="small"
-                        >
-                          <CloseIcon fontSize="small" />
-                        </IconButton>
-                        <img
-                          src={filePreview}
-                          alt="New event"
-                          style={{
-                            width: "100%",
-                            height: "300px",
-                            objectFit: "cover",
-                          }}
-                        />
-                      </Box>
-                    </Box>
-                  )}
-
-                  {/* File Upload Button */}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileSelect}
-                    style={{ display: "none" }}
-                    id="image-upload"
-                  />
-                  <label htmlFor="image-upload">
-                    <Button
-                      variant="outlined"
-                      component="span"
-                      startIcon={<Add />}
-                      fullWidth
-                      sx={{
-                        color: "#fa709a",
-                        borderColor: "#fa709a",
-                        "&:hover": {
-                          borderColor: "#fa709a",
-                          backgroundColor: "rgba(250, 112, 154, 0.1)",
-                        },
-                      }}
-                    >
-                      {currentImage || filePreview
-                        ? "Change Event Image"
-                        : "Select Event Image"}
-                    </Button>
-                  </label>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
-        </Box>
-      </Container>
+          <Divider sx={{ borderColor: tickahub.borderSubtle }} />
+          <Button variant="contained" size="small" disabled={!isFormValid() || saving} startIcon={saving ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />} onClick={handleSave} sx={{ ...primaryButtonSx, alignSelf: "flex-start", width: { xs: "100%", sm: "auto" } }}>
+            {saving ? "Saving..." : "Save changes"}
+          </Button>
+        </Stack>
+      </SectionCard>
     </Box>
   );
 };

@@ -1,0 +1,359 @@
+/* Full-screen split login */
+.split-auth-page {
+  min-height: 100vh;
+  width: 100%;
+  max-width: 100vw;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  isolation: isolate;
+}
+
+.split-auth-container {
+  position: relative;
+  width: 100%;
+  max-width: 100vw;
+  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
+  backdrop-filter: blur(2px);
+}
+
+/* ── Form panels ── */
+.split-auth-container .form-container {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1a2235;
+  transition: transform 0.65s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease,
+    width 0.65s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 2;
+}
+
+.split-auth-container .form-container::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 100px;
+  height: 140%;
+  background: #1a2235;
+  border-radius: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* Sign in: form right 58%, brand left 42% */
+.split-auth-container .sign-in-container {
+  left: 42%;
+  width: 58%;
+  z-index: 3;
+}
+
+.split-auth-container .sign-in-container::after {
+  left: -50px;
+}
+
+.split-auth-container .sign-up-container {
+  left: 0;
+  width: 58%;
+  z-index: 1;
+  transform: translateX(-105%);
+  opacity: 0;
+}
+
+.split-auth-container .sign-up-container::after {
+  right: -50px;
+  left: auto;
+}
+
+.split-auth-container.right-panel-active .sign-in-container {
+  transform: translateX(105%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Register: keep split layout like sign-in */
+.split-auth-container.right-panel-active .sign-up-container {
+  left: 0;
+  width: 58%;
+  transform: translateX(0);
+  opacity: 1;
+  z-index: 4;
+}
+
+.split-auth-container.right-panel-active .sign-up-container::after {
+  right: -50px;
+  left: auto;
+}
+
+.split-auth-container .form-inner {
+  width: 100%;
+  max-width: 480px;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  padding: 32px 40px;
+  box-sizing: border-box;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(8px);
+  animation: form-fade-up 0.45s ease;
+}
+
+@media (min-width: 1200px) {
+  .split-auth-container .form-inner {
+    max-width: 540px;
+    padding: 36px 44px;
+  }
+}
+
+@media (min-width: 1600px) {
+  .split-auth-container .form-inner {
+    max-width: 600px;
+    padding: 40px 48px;
+  }
+}
+
+@keyframes form-fade-up {
+  from {
+    opacity: 0.6;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Register form — no scroll, compact fit */
+.split-auth-container.right-panel-active .form-inner {
+  max-width: 680px;
+  max-height: calc(100vh - 20px);
+  overflow: hidden;
+  padding: 32px 40px 28px;
+}
+
+@media (min-width: 1200px) {
+  .split-auth-container.right-panel-active .form-inner {
+    max-width: 760px;
+    padding: 36px 44px 30px;
+  }
+}
+
+@media (min-width: 1600px) {
+  .split-auth-container.right-panel-active .form-inner {
+    max-width: 840px;
+    padding: 40px 48px 32px;
+  }
+}
+
+.split-auth-container .register-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 20px;
+  row-gap: 12px;
+}
+
+.split-auth-container.right-panel-active .form-inner .MuiTabs-root {
+  min-height: 40px;
+  margin-bottom: 18px;
+}
+
+.split-auth-container.right-panel-active .form-inner .MuiTab-root {
+  min-height: 40px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+/* Brand panel — visible in both modes */
+.split-auth-container .brand-panel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 42%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  text-align: center;
+  padding: 0 40px;
+  z-index: 5;
+  transition: transform 0.65s cubic-bezier(0.4, 0, 0.2, 1), padding 0.4s ease;
+}
+
+.split-auth-container.right-panel-active .brand-panel {
+  transform: translateX(138.1%);
+  padding: 0 24px;
+}
+
+.split-auth-container .brand-content {
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  animation: brand-fade-in 0.45s ease;
+}
+
+@keyframes brand-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.split-auth-container .ghost-btn {
+  background: transparent;
+  border: 2px solid #ffb800;
+  color: #ffb800;
+  font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  padding: 14px 52px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+  font-family: inherit;
+  margin-top: 8px;
+  min-width: 168px;
+}
+
+.split-auth-container .ghost-btn:hover {
+  background: rgba(255, 184, 0, 0.12);
+  transform: scale(1.04);
+}
+
+.split-auth-container .ghost-btn:focus-visible {
+  outline: 3px solid rgba(255, 184, 0, 0.45);
+  outline-offset: 3px;
+}
+
+.split-auth-container.account-artist .ghost-btn {
+  border-color: #00d4ff;
+  color: #00d4ff;
+}
+
+.split-auth-container.account-artist .ghost-btn:hover {
+  background: rgba(0, 212, 255, 0.12);
+}
+
+.split-auth-container .form-inner .MuiButton-root {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+.split-auth-container .form-inner .MuiButton-root:focus-visible {
+  outline: 3px solid rgba(255, 184, 0, 0.35);
+  outline-offset: 2px;
+}
+
+.split-auth-container .form-inner .MuiOutlinedInput-root {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.mobile-form-logo {
+  display: none;
+}
+
+.mobile-mode-switch {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .split-auth-page {
+    overflow-x: hidden;
+  }
+
+  .split-auth-container {
+    height: auto;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 16px;
+    box-sizing: border-box;
+  }
+
+  .split-auth-container .form-container {
+    position: relative;
+    width: 100% !important;
+    height: auto;
+    min-height: auto;
+    left: auto !important;
+    transform: none !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    background: transparent;
+  }
+
+  .split-auth-container .form-container::after {
+    display: none;
+  }
+
+  .split-auth-container .sign-up-container {
+    display: none;
+  }
+
+  .split-auth-container.right-panel-active .sign-in-container {
+    display: none;
+  }
+
+  .split-auth-container.right-panel-active .sign-up-container {
+    display: flex;
+  }
+
+  /* No split panel on mobile — logo + form only */
+  .split-auth-container .brand-panel {
+    display: none !important;
+  }
+
+  .mobile-form-logo {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 16px;
+  }
+
+  .mobile-mode-switch {
+    display: block;
+  }
+
+  .split-auth-container .form-inner,
+  .split-auth-container.right-panel-active .form-inner {
+    width: 100%;
+    max-width: 440px;
+    max-height: none;
+    padding: 28px 22px;
+    overflow-y: visible;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+    border-radius: 18px;
+  }
+
+  .split-auth-container .register-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .split-auth-container .form-container,
+  .split-auth-container .brand-panel,
+  .split-auth-container .form-inner,
+  .split-auth-container .brand-content,
+  .split-auth-container .ghost-btn,
+  .split-auth-container .form-inner .MuiButton-root {
+    transition: none !important;
+    animation: none !important;
+  }
+}

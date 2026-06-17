@@ -1,4 +1,3 @@
-// import "../Styles/login.scss";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -6,26 +5,17 @@ import {
   Typography,
   Button,
   TextField,
-  Paper,
   Dialog,
   DialogActions,
   DialogContent,
   DialogContentText,
   DialogTitle,
-  Card,
-  Snackbar,
-  Alert,
-  Grid,
-  Container,
-  Stack,
   Divider,
-  Fade,
-  Slide,
-  Zoom,
   CircularProgress,
   InputAdornment,
   IconButton,
-  useTheme,
+  Tabs,
+  Tab,
 } from "@mui/material";
 import {
   Visibility,
@@ -33,33 +23,143 @@ import {
   Email,
   Lock,
   Login,
+  MicExternalOn,
+  Person,
+  Storefront,
 } from "@mui/icons-material";
 import Swal from "sweetalert2";
+import { tickahub, goldGradient, cyanGradient, backgroundGradient } from "../tickahubTheme";
+import "./loginSplit.css";
 
-const images = ["/ticka1.png", "/ticka2.png", "/ticka3.png"];
+const fieldSx = {
+  "& .MuiOutlinedInput-root": {
+    backgroundColor: tickahub.navyLight,
+    borderRadius: 3,
+    transition: "all 0.2s ease",
+    "& fieldset": { borderColor: tickahub.borderLight },
+    "&:hover fieldset": { borderColor: "rgba(255, 255, 255, 0.28)" },
+    "&.Mui-focused fieldset": { borderColor: tickahub.gold, borderWidth: 2 },
+    "&.Mui-focused": { boxShadow: `0 0 0 4px ${tickahub.gold}22` },
+  },
+  "& .MuiInputLabel-root": {
+    color: tickahub.textMuted,
+    "&.Mui-focused": { color: tickahub.gold },
+  },
+  "& .MuiInputBase-input": { color: "#fff" },
+  "& .MuiInputBase-input::placeholder": { color: tickahub.textMuted, opacity: 1 },
+};
 
-export default function LoginPage(props) {
-  const theme = useTheme();
-  const rfEmail = useRef();
-  const rsEmail = useRef();
-  const rfPassword = useRef();
-  const code = useRef();
+const tabSx = {
+  mb: 2.5,
+  minHeight: 40,
+  "& .MuiTab-root": {
+    color: tickahub.textMuted,
+    fontWeight: 700,
+    textTransform: "none",
+    minHeight: 40,
+    fontSize: "0.875rem",
+  },
+  "& .Mui-selected": { color: tickahub.gold },
+  "& .MuiTabs-indicator": { background: goldGradient, height: 3, borderRadius: 2 },
+};
+
+const compactFieldSx = {
+  ...fieldSx,
+  "& .MuiFormControl-root": { my: 0.85 },
+  "& .MuiInputBase-root": { fontSize: "0.95rem" },
+  "& .MuiInputBase-input": { py: 1.35 },
+};
+
+const swalDark = {
+  confirmButtonColor: tickahub.gold,
+  background: tickahub.surface,
+  color: "#fff",
+};
+
+const pillBtnSx = {
+  mt: 2.5,
+  py: 1.6,
+  borderRadius: 3,
+  fontWeight: 800,
+  fontSize: "0.95rem",
+  boxShadow: `0 8px 24px ${tickahub.gold}44`,
+  "&:hover": {
+    boxShadow: `0 12px 28px ${tickahub.gold}55`,
+    transform: "translateY(-1px)",
+  },
+};
+
+function PasswordToggle({ show, onToggle }) {
+  return (
+    <InputAdornment position="end">
+      <IconButton
+        onClick={onToggle}
+        edge="end"
+        aria-label="toggle password visibility"
+        sx={{ color: tickahub.textMuted }}
+      >
+        {show ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+      </IconButton>
+    </InputAdornment>
+  );
+}
+
+function AccountTypeTabs({ value, onChange }) {
+  return (
+    <Tabs value={value} onChange={onChange} variant="fullWidth" sx={tabSx}>
+      <Tab value="organizer" label="Organizer" icon={<Storefront sx={{ fontSize: 18 }} />} iconPosition="start" />
+      <Tab value="artist" label="Artist" icon={<MicExternalOn sx={{ fontSize: 18 }} />} iconPosition="start" />
+    </Tabs>
+  );
+}
+
+function MobileFormLogo() {
+  return (
+    <Box className="mobile-form-logo">
+      <Box
+        component="img"
+        src="/tickahub.png"
+        alt="TickaHub"
+        sx={{
+          width: 56,
+          height: 56,
+          borderRadius: 2,
+          boxShadow: `0 8px 24px ${tickahub.gold}33`,
+        }}
+      />
+    </Box>
+  );
+}
+
+export default function LoginPage() {
+  const navigate = useNavigate();
+  const [accountType, setAccountType] = useState("organizer");
+  const [isLoginMode, setIsLoginMode] = useState(true);
   const [loading, setLoading] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
-  const [registerLoading, setRegisterLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isLoginMode, setIsLoginMode] = useState(true);
-  const [body, updateBody] = useState({
-    email: null,
-  });
-
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showOrgRegPassword, setShowOrgRegPassword] = useState(false);
+  const [showOrgRegConfirm, setShowOrgRegConfirm] = useState(false);
+  const [showArtistRegPassword, setShowArtistRegPassword] = useState(false);
+  const [showArtistRegConfirm, setShowArtistRegConfirm] = useState(false);
   const [openResetDialog, setOpenResetDialog] = useState(false);
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [severity, setSeverity] = useState("error");
-  const navigate = useNavigate();
 
-  // Registration form refs
+  const registerActive = !isLoginMode;
+
+  useEffect(() => {
+    setShowLoginPassword(false);
+    setShowOrgRegPassword(false);
+    setShowOrgRegConfirm(false);
+    setShowArtistRegPassword(false);
+    setShowArtistRegConfirm(false);
+  }, [isLoginMode, accountType]);
+
+  const switchToSignIn = () => setIsLoginMode(true);
+  const switchToSignUp = () => setIsLoginMode(false);
+
+  const rfEmail = useRef();
+  const rfPassword = useRef();
+  const rsEmail = useRef();
   const rfOrgName = useRef();
   const rfContactPerson = useRef();
   const rfRegEmail = useRef();
@@ -67,182 +167,99 @@ export default function LoginPage(props) {
   const rfConfirmPassword = useRef();
   const rfPhone = useRef();
   const rfAddress = useRef();
+  const rfStageName = useRef();
+  const rfArtistName = useRef();
+  const rfArtistEmail = useRef();
+  const rfArtistPassword = useRef();
+  const rfArtistConfirm = useRef();
+  const rfArtistPhone = useRef();
+  const rfGenre = useRef();
 
-  const login = async (e) => {
-    if (e) e.preventDefault();
-
-    let d = body;
-    d.email = rfEmail.current.value.toLowerCase().trim();
-    d.password = rfPassword.current.value;
-    updateBody(d);
-
-    if (!validateEmail(body.email)) {
-      Swal.fire({
-        icon: "error",
-        title: "Invalid Email",
-        text: "Please enter a valid email address",
-        confirmButtonColor: theme.palette.primary.main,
-      });
-      return;
-    }
-
-    if (!validatePassword(body.password)) {
-      Swal.fire({
-        icon: "error",
-        title: "Invalid Password",
-        text: "Password must be at least 6 characters",
-        confirmButtonColor: theme.palette.primary.main,
-      });
-      return;
-    }
-
-    if (validateEmail(body.email) && validatePassword(body.password)) {
-      setLoading(true);
-      Swal.fire({
-        title: "Signing in...",
-        allowOutsideClick: false,
-        didOpen: () => {
-          Swal.showLoading();
-        },
-      });
-
-      try {
-        const response = await fetch("/api/organizers/login", {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          body: JSON.stringify(body),
-        });
-        const data = await response.json();
-
-        if (!response.ok) {
-          Swal.fire({
-            icon: "error",
-            title: "Login Failed",
-            text: data.message,
-            confirmButtonColor: theme.palette.primary.main,
-          });
-        } else {
-          // Check if login was successful
-          if (data.success) {
-            Swal.fire({
-              icon: "success",
-              title: "Success!",
-              text: data.message,
-              timer: 1500,
-              showConfirmButton: false,
-            });
-            localStorage.setItem("token", data.data.token);
-            localStorage.setItem("userRole", "organizer");
-            localStorage.setItem("user", JSON.stringify(data.data.organizer));
-            setTimeout(() => {
-              navigate("/profile");
-            }, 1500);
-          } else {
-            Swal.fire({
-              icon: "error",
-              title: "Login Failed",
-              text: data.message,
-              confirmButtonColor: theme.palette.primary.main,
-            });
-          }
-        }
-      } catch (err) {
-        Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: "Login failed. Please try again.",
-          confirmButtonColor: theme.palette.primary.main,
-        });
-      } finally {
-        setLoading(false);
-      }
-    }
-  };
-
-  const reset = async () => {
-    let d = { Email: rsEmail.current.value.toLowerCase().trim() };
-
-    if (!validateEmail(d.Email)) {
-      Swal.fire({
-        icon: "error",
-        title: "Invalid Email",
-        text: "Please enter a valid email address",
-        confirmButtonColor: theme.palette.primary.main,
-      });
-      return;
-    }
-
-    if (validateEmail(d.Email)) {
-      setResetLoading(true);
-      Swal.fire({
-        title: "Processing...",
-        allowOutsideClick: false,
-        didOpen: () => {
-          Swal.showLoading();
-        },
-      });
-
-      try {
-        const response = await fetch("/api/organizers/forgot-password", {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          body: JSON.stringify(d),
-        });
-        const data = await response.json();
-
-        if (response.ok) {
-          setOpenResetDialog(false);
-          Swal.fire({
-            icon: "success",
-            title: "Success",
-            text: data.message,
-            confirmButtonColor: theme.palette.primary.main,
-          });
-        } else {
-          Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: data.message,
-            confirmButtonColor: theme.palette.primary.main,
-          });
-        }
-      } catch (err) {
-        Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: "Something went wrong. Please try again.",
-          confirmButtonColor: theme.palette.primary.main,
-        });
-      } finally {
-        setResetLoading(false);
-      }
-    }
-  };
-
-  const validateEmail = (email) => {
-    return String(email)
+  const validateEmail = (email) =>
+    String(email)
       .toLowerCase()
       .match(
         /^(([^<>()[\]/.,;:\s@"]+(\.[^<>()[\]/.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
       );
+
+  const validatePassword = (password) => password.length >= 6;
+
+  const loginOrganizer = async (email, password) => {
+    const response = await fetch("/api/organizers/login", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await response.json();
+    if (!response.ok || !data.success) {
+      const error = new Error(data.message || "Login failed");
+      error.code = data.code;
+      throw error;
+    }
+    localStorage.setItem("token", data.data.token);
+    localStorage.setItem("userRole", "organizer");
+    localStorage.setItem("user", JSON.stringify(data.data.organizer));
+    return data;
   };
 
-  const validatePassword = (password) => {
-    return password.length >= 6;
+  const loginArtist = async (email, password) => {
+    const response = await fetch("/api/artists/login", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await response.json();
+    if (!response.ok || !data.success) {
+      const error = new Error(data.message || "Login failed");
+      error.code = data.code;
+      throw error;
+    }
+    localStorage.setItem("token", data.data.token);
+    localStorage.setItem("userRole", "artist");
+    localStorage.setItem("user", JSON.stringify(data.data.artist));
+    return data;
   };
 
-  const register = async (e) => {
-    if (e) e.preventDefault();
+  const showLoginError = (err) => {
+    const wrongPortal = err.code === "WRONG_ACCOUNT_TYPE";
+    Swal.fire({
+      icon: wrongPortal ? "warning" : "error",
+      title: wrongPortal ? "Wrong sign-in tab" : "Login failed",
+      text: err.message,
+      ...swalDark,
+    });
+  };
 
-    const registrationData = {
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    const email = rfEmail.current.value.toLowerCase().trim();
+    const password = rfPassword.current.value;
+    if (!validateEmail(email)) {
+      Swal.fire({ icon: "error", title: "Invalid email", ...swalDark });
+      return;
+    }
+    if (!validatePassword(password)) {
+      Swal.fire({ icon: "error", title: "Invalid password", ...swalDark });
+      return;
+    }
+    setLoading(true);
+    Swal.fire({ title: "Signing in...", allowOutsideClick: false, ...swalDark, didOpen: () => Swal.showLoading() });
+    try {
+      const data = accountType === "organizer" ? await loginOrganizer(email, password) : await loginArtist(email, password);
+      Swal.fire({ icon: "success", title: "Welcome back", text: data.message, timer: 1500, showConfirmButton: false, ...swalDark });
+      setTimeout(() => navigate("/profile"), 1500);
+    } catch (err) {
+      showLoginError(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const registerOrganizer = async (e) => {
+    e.preventDefault();
+    const payload = {
       organization_name: rfOrgName.current.value.trim(),
       contact_person: rfContactPerson.current.value.trim(),
       email: rfRegEmail.current.value.toLowerCase().trim(),
@@ -250,922 +267,400 @@ export default function LoginPage(props) {
       phone_number: rfPhone.current.value.trim(),
       address: rfAddress.current.value.trim(),
     };
-
-    // Validation
-    if (!registrationData.organization_name) {
-      Swal.fire({
-        icon: "error",
-        title: "Missing Information",
-        text: "Please enter your organization name",
-        confirmButtonColor: theme.palette.primary.main,
-      });
+    if (!payload.organization_name || !payload.contact_person || !payload.phone_number) {
+      Swal.fire({ icon: "error", title: "Missing information", ...swalDark });
       return;
     }
-
-    if (!registrationData.contact_person) {
-      Swal.fire({
-        icon: "error",
-        title: "Missing Information",
-        text: "Please enter contact person name",
-        confirmButtonColor: theme.palette.primary.main,
-      });
+    if (!validateEmail(payload.email) || !validatePassword(payload.password)) {
+      Swal.fire({ icon: "error", title: "Check email and password", ...swalDark });
       return;
     }
-
-    if (!validateEmail(registrationData.email)) {
-      Swal.fire({
-        icon: "error",
-        title: "Invalid Email",
-        text: "Please enter a valid email address",
-        confirmButtonColor: theme.palette.primary.main,
-      });
+    if (payload.password !== rfConfirmPassword.current.value) {
+      Swal.fire({ icon: "error", title: "Passwords do not match", ...swalDark });
       return;
     }
-
-    if (!validatePassword(registrationData.password)) {
-      Swal.fire({
-        icon: "error",
-        title: "Invalid Password",
-        text: "Password must be at least 6 characters",
-        confirmButtonColor: theme.palette.primary.main,
-      });
-      return;
-    }
-
-    if (registrationData.password !== rfConfirmPassword.current.value) {
-      Swal.fire({
-        icon: "error",
-        title: "Password Mismatch",
-        text: "Passwords do not match",
-        confirmButtonColor: theme.palette.primary.main,
-      });
-      return;
-    }
-
-    if (!registrationData.phone_number) {
-      Swal.fire({
-        icon: "error",
-        title: "Missing Information",
-        text: "Please enter your phone number",
-        confirmButtonColor: theme.palette.primary.main,
-      });
-      return;
-    }
-
-    setRegisterLoading(true);
-    Swal.fire({
-      title: "Creating Account...",
-      allowOutsideClick: false,
-      didOpen: () => {
-        Swal.showLoading();
-      },
-    });
-
+    setLoading(true);
+    Swal.fire({ title: "Creating account...", allowOutsideClick: false, ...swalDark, didOpen: () => Swal.showLoading() });
     try {
-      const response = await fetch("/api/organizers/register", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify(registrationData),
-      });
+      const response = await fetch("/api/organizers/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const data = await response.json();
-
-      if (!response.ok) {
-        Swal.fire({
-          icon: "error",
-          title: "Registration Failed",
-          text: data.message,
-          confirmButtonColor: theme.palette.primary.main,
-        });
-      } else {
-        if (data.success) {
-          Swal.fire({
-            icon: "success",
-            title: "Registration Successful!",
-            text: "Your account has been created. Please wait for admin approval before you can login.",
-            timer: 3000,
-            showConfirmButton: false,
-          });
-
-          // Clear form
-          rfOrgName.current.value = "";
-          rfContactPerson.current.value = "";
-          rfRegEmail.current.value = "";
-          rfRegPassword.current.value = "";
-          rfConfirmPassword.current.value = "";
-          rfPhone.current.value = "";
-          rfAddress.current.value = "";
-
-          // Switch to login mode
-          setTimeout(() => {
-            setIsLoginMode(true);
-          }, 3000);
-        } else {
-          Swal.fire({
-            icon: "error",
-            title: "Registration Failed",
-            text: data.message,
-            confirmButtonColor: theme.palette.primary.main,
-          });
-        }
-      }
+      if (!response.ok || !data.success) throw new Error(data.message || "Registration failed");
+      Swal.fire({ icon: "success", title: "Account submitted", text: "Awaiting admin approval before you can sign in.", ...swalDark });
+      setIsLoginMode(true);
     } catch (err) {
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "Registration failed. Please try again.",
-        confirmButtonColor: theme.palette.primary.main,
-      });
+      Swal.fire({ icon: "error", title: "Registration failed", text: err.message, ...swalDark });
     } finally {
-      setRegisterLoading(false);
+      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    let currentIndex = 0;
-    const backgroundElement = document.querySelector(".login-background");
-
-    // Preload images
-    images.forEach((imageSrc) => {
-      const img = new Image();
-      img.src = imageSrc;
-    });
-
-    const changeBackground = () => {
-      if (backgroundElement) {
-        // Fade out current image
-        backgroundElement.style.opacity = 0;
-
-        setTimeout(() => {
-          currentIndex = (currentIndex + 1) % images.length;
-          backgroundElement.style.backgroundImage = `url(${images[currentIndex]})`;
-          // Fade in new image
-          backgroundElement.style.opacity = 1;
-        }, 500);
-      }
+  const registerArtist = async (e) => {
+    e.preventDefault();
+    const payload = {
+      full_name: rfArtistName.current.value.trim(),
+      stage_name: rfStageName.current.value.trim(),
+      email: rfArtistEmail.current.value.toLowerCase().trim(),
+      password: rfArtistPassword.current.value,
+      phone: rfArtistPhone.current?.value?.trim() || "",
+      genre: rfGenre.current?.value?.trim() || "",
     };
-
-    // Initial setup
-    if (backgroundElement) {
-      backgroundElement.style.transition = "opacity 1s ease-in-out";
-      backgroundElement.style.opacity = 1;
+    if (!payload.full_name && !payload.stage_name) {
+      Swal.fire({ icon: "error", title: "Enter your name or stage name", ...swalDark });
+      return;
     }
+    if (!validateEmail(payload.email) || !validatePassword(payload.password)) {
+      Swal.fire({ icon: "error", title: "Check email and password", ...swalDark });
+      return;
+    }
+    if (payload.password !== rfArtistConfirm.current.value) {
+      Swal.fire({ icon: "error", title: "Passwords do not match", ...swalDark });
+      return;
+    }
+    setLoading(true);
+    Swal.fire({ title: "Creating artist account...", allowOutsideClick: false, ...swalDark, didOpen: () => Swal.showLoading() });
+    try {
+      const response = await fetch("/api/artists/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.message || "Registration failed");
+      Swal.fire({
+        icon: "success",
+        title: "Account created",
+        text: "Sign in with your email and password to continue.",
+        ...swalDark,
+      });
+      setIsLoginMode(true);
+    } catch (err) {
+      Swal.fire({ icon: "error", title: "Registration failed", text: err.message, ...swalDark });
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const intervalId = setInterval(changeBackground, 5000); // Change every 5 seconds for testing
-
-    return () => clearInterval(intervalId);
-  }, []);
+  const resetPassword = async () => {
+    const email = rsEmail.current.value.toLowerCase().trim();
+    if (!validateEmail(email)) {
+      Swal.fire({ icon: "error", title: "Invalid email", ...swalDark });
+      return;
+    }
+    setResetLoading(true);
+    const endpoint = accountType === "organizer" ? "/api/organizers/forgot-password" : "/api/users/forgot-password";
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(accountType === "organizer" ? { Email: email } : { email }),
+      });
+      const data = await response.json();
+      setOpenResetDialog(false);
+      Swal.fire({ icon: response.ok ? "success" : "error", title: response.ok ? "Check your email" : "Error", text: data.message, ...swalDark });
+    } catch {
+      Swal.fire({ icon: "error", title: "Something went wrong", ...swalDark });
+    } finally {
+      setResetLoading(false);
+    }
+  };
 
   return (
-    <Box
-      display="flex"
-      alignItems="center"
-      justifyContent="center"
-      minHeight="100vh"
-      position="relative"
-      sx={{ overflow: "hidden" }}
-    >
-      <div
-        className="login-background"
-        style={{
+    <Box className="split-auth-page" sx={{ background: backgroundGradient }}>
+      <Box
+        sx={{
           position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundImage: `url(${images[0]})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
-          transition: "opacity 1s ease-in-out",
-          backgroundColor: "#2c3e50", // Professional dark blue background
+          width: 420,
+          height: 420,
+          top: "-8%",
+          right: "-6%",
+          borderRadius: "50%",
+          background: `radial-gradient(circle, ${tickahub.gold}30 0%, transparent 70%)`,
+          filter: "blur(40px)",
+          pointerEvents: "none",
         }}
       />
       <Box
         sx={{
           position: "absolute",
-          top: 0,
-          left: 0,
-          width: "100%",
-          height: "100%",
-          background: `linear-gradient(135deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.5) 100%)`,
-          backdropFilter: "blur(0px)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
+          width: 360,
+          height: 360,
+          bottom: "-10%",
+          left: "-8%",
+          borderRadius: "50%",
+          background: `radial-gradient(circle, ${tickahub.cyan}22 0%, transparent 70%)`,
+          filter: "blur(48px)",
+          pointerEvents: "none",
         }}
+      />
+
+      <Box
+        className={`split-auth-container${registerActive ? " right-panel-active" : ""} account-${accountType}`}
       >
-        <Container maxWidth="lg" sx={{ px: { xs: 0.5, sm: 2, md: 3 } }}>
-          <Grid
-            container
-            spacing={{ xs: 1, sm: 3, md: 4 }}
-            alignItems="center"
-            justifyContent="center"
-          >
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Fade in timeout={1000}>
-                <Stack
-                  spacing={{ xs: 1, sm: 3, md: 4 }}
-                  alignItems={{ xs: "center", md: "flex-start" }}
-                >
-                  <Slide direction="up" in timeout={1200}>
-                    <Box>
-                      <Typography
-                        variant="h2"
-                        sx={{
-                          color: "#fff",
-                          fontWeight: 700,
-                          fontSize: {
-                            xs: "1.5rem",
-                            sm: "2.5rem",
-                            md: "3rem",
-                            lg: "3.5rem",
-                          },
-                          textAlign: { xs: "center", md: "left" },
-                          letterSpacing: "1px",
-                          mb: { xs: 0.5, sm: 2 },
-                          background: `linear-gradient(45deg, ${theme.palette.primary.light}, ${theme.palette.secondary.light})`,
-                          backgroundClip: "text",
-                          WebkitBackgroundClip: "text",
-                          WebkitTextFillColor: "transparent",
-                        }}
-                      >
-                        TickaZone
-                      </Typography>
-                    </Box>
-                  </Slide>
-                </Stack>
-              </Fade>
-            </Grid>
-
-            <Grid
-              size={{ xs: 12, md: 6 }}
-              sx={{ display: "flex", justifyContent: "center" }}
+        {/* Sign in — right side when active */}
+        <Box className="form-container sign-in-container">
+          <Box className="form-inner">
+            <MobileFormLogo />
+            <AccountTypeTabs value={accountType} onChange={(_, v) => setAccountType(v)} />
+            <Typography variant="h4" sx={{ fontWeight: 800, color: "#fff", mb: 0.5 }}>
+              Sign in
+            </Typography>
+            <Typography variant="body2" sx={{ color: tickahub.textMuted, mb: 2 }}>
+              Sign in to your {accountType} account
+            </Typography>
+            <form onSubmit={handleLogin}>
+              <TextField
+                inputRef={rfEmail}
+                type="email"
+                label="Email"
+                fullWidth
+                margin="normal"
+                autoComplete="email"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Email sx={{ color: tickahub.textMuted, fontSize: 20 }} />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={fieldSx}
+              />
+              <TextField
+                inputRef={rfPassword}
+                type={showLoginPassword ? "text" : "password"}
+                label="Password"
+                fullWidth
+                margin="normal"
+                autoComplete="current-password"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Lock sx={{ color: tickahub.textMuted, fontSize: 20 }} />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <PasswordToggle
+                      show={showLoginPassword}
+                      onToggle={() => setShowLoginPassword(!showLoginPassword)}
+                    />
+                  ),
+                }}
+                sx={fieldSx}
+              />
+              <Typography
+                variant="body2"
+                align="right"
+                sx={{
+                  mt: 1,
+                  color: tickahub.cyan,
+                  cursor: "pointer",
+                  fontWeight: 600,
+                  "&:hover": { textDecoration: "underline" },
+                }}
+                onClick={() => setOpenResetDialog(true)}
+              >
+                Forgot password?
+              </Typography>
+              <Button
+                type="submit"
+                fullWidth
+                size="large"
+                disabled={loading}
+                startIcon={loading ? <CircularProgress size={20} sx={{ color: tickahub.navy }} /> : <Login />}
+                sx={{
+                  ...pillBtnSx,
+                  background: goldGradient,
+                  color: tickahub.navy,
+                  "&:hover": { background: `linear-gradient(135deg, ${tickahub.goldDark}, ${tickahub.gold})` },
+                }}
+              >
+                {loading ? "Signing in..." : "Sign in"}
+              </Button>
+            </form>
+            <Typography
+              variant="body2"
+              align="center"
+              className="mobile-mode-switch"
+              sx={{
+                mt: 2,
+                color: tickahub.textMuted,
+                cursor: "pointer",
+                "&:hover": { color: tickahub.cyan },
+              }}
+              onClick={switchToSignUp}
             >
-              <Slide direction="left" in timeout={1500}>
-                <Card
-                  elevation={0}
-                  sx={{
-                    p: { xs: 1.5, sm: 3, md: 4 },
-                    maxWidth: { xs: "100%", sm: 450, md: 500 },
-                    width: "100%",
-                    borderRadius: { xs: 2, sm: 4 },
-                    background: "rgba(255, 255, 255, 0.1)",
-                    backdropFilter: "blur(25px)",
-                    border: "1px solid rgba(255, 255, 255, 0.2)",
-                    boxShadow: "0 8px 32px rgba(0, 0, 0, 0.2)",
-                    transition: "all 0.3s ease-in-out",
-                    mx: { xs: 0.5, sm: 0 },
-                    maxHeight: { xs: "90vh", sm: "none" },
-                    overflowY: { xs: "auto", sm: "visible" },
-                    "&:hover": {
-                      transform: { xs: "none", sm: "translateY(-5px)" },
-                      boxShadow: "0 12px 40px rgba(0, 0, 0, 0.3)",
-                      border: "1px solid rgba(255, 255, 255, 0.3)",
-                    },
+              Don&apos;t have an account?{" "}
+              <Box component="span" sx={{ color: tickahub.cyan, fontWeight: 700 }}>
+                Sign up
+              </Box>
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* Sign up — left side when active */}
+        <Box className="form-container sign-up-container">
+          <Box className="form-inner">
+            <MobileFormLogo />
+            <AccountTypeTabs value={accountType} onChange={(_, v) => setAccountType(v)} />
+            <Typography variant="h4" sx={{ fontWeight: 800, color: "#fff", mb: 0.25, fontSize: "1.35rem" }}>
+              Sign up
+            </Typography>
+            <Typography variant="body2" sx={{ color: tickahub.textMuted, mb: 1.5, fontSize: "0.8rem" }}>
+              {accountType === "organizer" ? "Submit for admin approval" : "Start sharing your schedule"}
+            </Typography>
+            {accountType === "organizer" ? (
+              <form onSubmit={registerOrganizer}>
+                <Box className="register-grid">
+                  <TextField inputRef={rfOrgName} label="Organization name" fullWidth size="small" autoComplete="organization" InputProps={{ startAdornment: <InputAdornment position="start"><Storefront sx={{ color: tickahub.textMuted, fontSize: 18 }} /></InputAdornment> }} sx={compactFieldSx} />
+                  <TextField inputRef={rfContactPerson} label="Contact person" fullWidth size="small" autoComplete="name" InputProps={{ startAdornment: <InputAdornment position="start"><Person sx={{ color: tickahub.textMuted, fontSize: 18 }} /></InputAdornment> }} sx={compactFieldSx} />
+                  <TextField inputRef={rfRegEmail} type="email" label="Email" fullWidth size="small" autoComplete="email" InputProps={{ startAdornment: <InputAdornment position="start"><Email sx={{ color: tickahub.textMuted, fontSize: 18 }} /></InputAdornment> }} sx={compactFieldSx} />
+                  <TextField inputRef={rfPhone} label="Phone" fullWidth size="small" autoComplete="tel" sx={compactFieldSx} />
+                  <Box sx={{ gridColumn: "1 / -1" }}>
+                    <TextField inputRef={rfAddress} label="Address (optional)" fullWidth size="small" sx={compactFieldSx} />
+                  </Box>
+                  <TextField
+                    inputRef={rfRegPassword}
+                    type={showOrgRegPassword ? "text" : "password"}
+                    label="Password"
+                    fullWidth
+                    size="small"
+                    autoComplete="new-password"
+                    InputProps={{
+                      startAdornment: <InputAdornment position="start"><Lock sx={{ color: tickahub.textMuted, fontSize: 18 }} /></InputAdornment>,
+                      endAdornment: <PasswordToggle show={showOrgRegPassword} onToggle={() => setShowOrgRegPassword(!showOrgRegPassword)} />,
+                    }}
+                    sx={compactFieldSx}
+                  />
+                  <TextField
+                    inputRef={rfConfirmPassword}
+                    type={showOrgRegConfirm ? "text" : "password"}
+                    label="Confirm password"
+                    fullWidth
+                    size="small"
+                    autoComplete="new-password"
+                    InputProps={{
+                      startAdornment: <InputAdornment position="start"><Lock sx={{ color: tickahub.textMuted, fontSize: 18 }} /></InputAdornment>,
+                      endAdornment: <PasswordToggle show={showOrgRegConfirm} onToggle={() => setShowOrgRegConfirm(!showOrgRegConfirm)} />,
+                    }}
+                    sx={compactFieldSx}
+                  />
+                </Box>
+                <Button type="submit" fullWidth size="large" disabled={loading} sx={{ ...pillBtnSx, mt: 2.25, py: 1.4, background: goldGradient, color: tickahub.navy }}>
+                  {loading ? "Submitting..." : "Sign up"}
+                </Button>
+              </form>
+            ) : (
+              <form onSubmit={registerArtist}>
+                <TextField inputRef={rfStageName} label="Stage name" fullWidth margin="dense" autoComplete="nickname" InputProps={{ startAdornment: <InputAdornment position="start"><MicExternalOn sx={{ color: tickahub.textMuted, fontSize: 20 }} /></InputAdornment> }} sx={fieldSx} />
+                <TextField inputRef={rfArtistName} label="Full name" fullWidth margin="dense" autoComplete="name" InputProps={{ startAdornment: <InputAdornment position="start"><Person sx={{ color: tickahub.textMuted, fontSize: 20 }} /></InputAdornment> }} sx={fieldSx} />
+                <TextField inputRef={rfArtistEmail} type="email" label="Email" fullWidth margin="dense" autoComplete="email" InputProps={{ startAdornment: <InputAdornment position="start"><Email sx={{ color: tickahub.textMuted, fontSize: 20 }} /></InputAdornment> }} sx={fieldSx} />
+                <TextField
+                  inputRef={rfArtistPassword}
+                  type={showArtistRegPassword ? "text" : "password"}
+                  label="Password"
+                  fullWidth
+                  margin="dense"
+                  autoComplete="new-password"
+                  InputProps={{
+                    startAdornment: <InputAdornment position="start"><Lock sx={{ color: tickahub.textMuted, fontSize: 20 }} /></InputAdornment>,
+                    endAdornment: <PasswordToggle show={showArtistRegPassword} onToggle={() => setShowArtistRegPassword(!showArtistRegPassword)} />,
                   }}
-                >
-                  {/* Login Form */}
-                  {isLoginMode ? (
-                    <form onSubmit={login}>
-                      <Typography
-                        textAlign="center"
-                        fontWeight="700"
-                        color="white"
-                        variant="h4"
-                        sx={{
-                          mb: { xs: 2, sm: 3 },
-                          textShadow: "2px 2px 4px rgba(0,0,0,0.5)",
-                          letterSpacing: "1px",
-                          fontSize: {
-                            xs: "1.5rem",
-                            sm: "2rem",
-                            md: "2.125rem",
-                          },
-                        }}
-                      >
-                        Sign In
-                      </Typography>
+                  sx={fieldSx}
+                />
+                <TextField
+                  inputRef={rfArtistConfirm}
+                  type={showArtistRegConfirm ? "text" : "password"}
+                  label="Confirm password"
+                  fullWidth
+                  margin="dense"
+                  autoComplete="new-password"
+                  InputProps={{
+                    startAdornment: <InputAdornment position="start"><Lock sx={{ color: tickahub.textMuted, fontSize: 20 }} /></InputAdornment>,
+                    endAdornment: <PasswordToggle show={showArtistRegConfirm} onToggle={() => setShowArtistRegConfirm(!showArtistRegConfirm)} />,
+                  }}
+                  sx={fieldSx}
+                />
+                <Button type="submit" fullWidth size="large" disabled={loading} sx={{ ...pillBtnSx, background: cyanGradient, color: tickahub.navy, boxShadow: `0 8px 24px ${tickahub.cyan}44` }}>
+                  {loading ? "Creating..." : "Sign up"}
+                </Button>
+              </form>
+            )}
+            <Typography
+              variant="body2"
+              align="center"
+              className="mobile-mode-switch"
+              sx={{
+                mt: 1.5,
+                color: tickahub.textMuted,
+                cursor: "pointer",
+                fontSize: "0.85rem",
+                "&:hover": { color: tickahub.cyan },
+              }}
+              onClick={switchToSignIn}
+            >
+              Already have an account?{" "}
+              <Box component="span" sx={{ color: tickahub.cyan, fontWeight: 700 }}>
+                Sign in
+              </Box>
+            </Typography>
+          </Box>
+        </Box>
 
-                      <TextField
-                        inputRef={rfEmail}
-                        type="email"
-                        label="Email Address"
-                        fullWidth
-                        margin="dense"
-                        variant="outlined"
-                        InputProps={{
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              <Email sx={{ color: "rgba(255,255,255,0.7)" }} />
-                            </InputAdornment>
-                          ),
-                        }}
-                        sx={{
-                          "& .MuiOutlinedInput-root": {
-                            backgroundColor: "rgba(255, 255, 255, 0.15)",
-                            borderRadius: 3,
-                            border: "1px solid rgba(255, 255, 255, 0.2)",
-                            transition: "all 0.3s ease",
-                            "&:hover": {
-                              backgroundColor: "rgba(255, 255, 255, 0.2)",
-                              border: "1px solid rgba(255, 255, 255, 0.4)",
-                            },
-                            "&.Mui-focused": {
-                              backgroundColor: "rgba(255, 255, 255, 0.25)",
-                              border: `2px solid ${theme.palette.primary.light}`,
-                              boxShadow: `0 0 20px ${theme.palette.primary.main}40`,
-                            },
-                          },
-                          "& .MuiInputLabel-root": {
-                            color: "rgba(255, 255, 255, 0.8)",
-                            "&.Mui-focused": {
-                              color: theme.palette.primary.light,
-                            },
-                          },
-                          "& .MuiInputBase-input": {
-                            color: "white",
-                            "&::placeholder": {
-                              color: "rgba(255, 255, 255, 0.6)",
-                            },
-                          },
-                        }}
-                      />
-
-                      <TextField
-                        inputRef={rfPassword}
-                        type={showPassword ? "text" : "password"}
-                        label="Password"
-                        fullWidth
-                        margin="dense"
-                        variant="outlined"
-                        InputProps={{
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              <Lock sx={{ color: "rgba(255,255,255,0.7)" }} />
-                            </InputAdornment>
-                          ),
-                          endAdornment: (
-                            <InputAdornment position="end">
-                              <IconButton
-                                onClick={() => setShowPassword(!showPassword)}
-                                edge="end"
-                                sx={{ color: "rgba(255,255,255,0.7)" }}
-                              >
-                                {showPassword ? (
-                                  <VisibilityOff />
-                                ) : (
-                                  <Visibility />
-                                )}
-                              </IconButton>
-                            </InputAdornment>
-                          ),
-                        }}
-                        sx={{
-                          "& .MuiOutlinedInput-root": {
-                            backgroundColor: "rgba(255, 255, 255, 0.15)",
-                            borderRadius: 3,
-                            border: "1px solid rgba(255, 255, 255, 0.2)",
-                            transition: "all 0.3s ease",
-                            "&:hover": {
-                              backgroundColor: "rgba(255, 255, 255, 0.2)",
-                              border: "1px solid rgba(255, 255, 255, 0.4)",
-                            },
-                            "&.Mui-focused": {
-                              backgroundColor: "rgba(255, 255, 255, 0.25)",
-                              border: `2px solid ${theme.palette.primary.light}`,
-                              boxShadow: `0 0 20px ${theme.palette.primary.main}40`,
-                            },
-                          },
-                          "& .MuiInputLabel-root": {
-                            color: "rgba(255, 255, 255, 0.8)",
-                            "&.Mui-focused": {
-                              color: theme.palette.primary.light,
-                            },
-                          },
-                          "& .MuiInputBase-input": {
-                            color: "white",
-                            "&::placeholder": {
-                              color: "rgba(255, 255, 255, 0.6)",
-                            },
-                          },
-                        }}
-                      />
-
-                      <Typography
-                        variant="body2"
-                        color="white"
-                        align="center"
-                        sx={{
-                          mt: 2,
-                          cursor: "pointer",
-                          transition: "all 0.3s ease",
-                          "&:hover": {
-                            textDecoration: "underline",
-                            color: theme.palette.primary.light,
-                            transform: "scale(1.05)",
-                          },
-                        }}
-                        onClick={() => setOpenResetDialog(true)}
-                      >
-                        Forgot password? Click here
-                      </Typography>
-
-                      <Button
-                        type="submit"
-                        variant="contained"
-                        fullWidth
-                        size="large"
-                        disabled={loading}
-                        startIcon={
-                          loading ? (
-                            <CircularProgress size={20} color="inherit" />
-                          ) : (
-                            <Login />
-                          )
-                        }
-                        sx={{
-                          mt: { xs: 2, sm: 3 },
-                          py: { xs: 1.2, sm: 1.5 },
-                          borderRadius: { xs: 2, sm: 3 },
-                          background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.light})`,
-                          boxShadow: `0 4px 15px ${theme.palette.primary.main}40`,
-                          transition: "all 0.3s ease",
-                          textTransform: "none",
-                          fontSize: { xs: "1rem", sm: "1.1rem" },
-                          fontWeight: 600,
-                          letterSpacing: "0.5px",
-                          "&:hover": {
-                            background: `linear-gradient(45deg, ${theme.palette.primary.dark}, ${theme.palette.primary.main})`,
-                            boxShadow: `0 6px 20px ${theme.palette.primary.main}60`,
-                            transform: "translateY(-2px)",
-                          },
-                          "&:disabled": {
-                            background: "rgba(255, 255, 255, 0.2)",
-                            color: theme.palette.primary.main,
-                          },
-                        }}
-                      >
-                        {loading ? "Signing In..." : "Sign In"}
-                      </Button>
-
-                      <Typography
-                        variant="body2"
-                        color="white"
-                        align="center"
-                        sx={{
-                          mt: 2,
-                          cursor: "pointer",
-                          transition: "all 0.3s ease",
-                          "&:hover": {
-                            textDecoration: "underline",
-                            color: theme.palette.primary.light,
-                            transform: "scale(1.05)",
-                          },
-                        }}
-                        onClick={() => setIsLoginMode(false)}
-                      >
-                        Don't have an account? Register here
-                      </Typography>
-                    </form>
-                  ) : (
-                    /* Registration Form */
-                    <form onSubmit={register}>
-                      <Typography
-                        textAlign="center"
-                        fontWeight="700"
-                        color="white"
-                        variant="h4"
-                        sx={{
-                          mb: { xs: 1, sm: 2 },
-                          textShadow: "2px 2px 4px rgba(0,0,0,0.5)",
-                          letterSpacing: "1px",
-                          fontSize: {
-                            xs: "1.25rem",
-                            sm: "2rem",
-                            md: "2.125rem",
-                          },
-                        }}
-                      >
-                        Create Account
-                      </Typography>
-
-                      <Box
-                        sx={{
-                          display: "flex",
-                          gap: { xs: 0.5, sm: 1.5 },
-                          flexDirection: { xs: "column", sm: "row" },
-                          mb: { xs: 0.5, sm: 0 },
-                        }}
-                      >
-                        <TextField
-                          inputRef={rfOrgName}
-                          type="text"
-                          label="Organization Name"
-                          fullWidth
-                          margin="dense"
-                          variant="outlined"
-                          sx={{
-                            "& .MuiOutlinedInput-root": {
-                              backgroundColor: "rgba(255, 255, 255, 0.15)",
-                              borderRadius: 3,
-                              border: "1px solid rgba(255, 255, 255, 0.2)",
-                              transition: "all 0.3s ease",
-                              "&:hover": {
-                                backgroundColor: "rgba(255, 255, 255, 0.2)",
-                                border: "1px solid rgba(255, 255, 255, 0.4)",
-                              },
-                              "&.Mui-focused": {
-                                backgroundColor: "rgba(255, 255, 255, 0.25)",
-                                border: `2px solid ${theme.palette.primary.light}`,
-                                boxShadow: `0 0 20px ${theme.palette.primary.main}40`,
-                              },
-                            },
-                            "& .MuiInputLabel-root": {
-                              color: "rgba(255, 255, 255, 0.8)",
-                              "&.Mui-focused": {
-                                color: theme.palette.primary.light,
-                              },
-                            },
-                            "& .MuiInputBase-input": {
-                              color: "white",
-                              "&::placeholder": {
-                                color: "rgba(255, 255, 255, 0.6)",
-                              },
-                            },
-                          }}
-                        />
-
-                        <TextField
-                          inputRef={rfContactPerson}
-                          type="text"
-                          label="Contact Person"
-                          fullWidth
-                          margin="dense"
-                          variant="outlined"
-                          sx={{
-                            "& .MuiOutlinedInput-root": {
-                              backgroundColor: "rgba(255, 255, 255, 0.15)",
-                              borderRadius: 3,
-                              border: "1px solid rgba(255, 255, 255, 0.2)",
-                              transition: "all 0.3s ease",
-                              "&:hover": {
-                                backgroundColor: "rgba(255, 255, 255, 0.2)",
-                                border: "1px solid rgba(255, 255, 255, 0.4)",
-                              },
-                              "&.Mui-focused": {
-                                backgroundColor: "rgba(255, 255, 255, 0.25)",
-                                border: `2px solid ${theme.palette.primary.light}`,
-                                boxShadow: `0 0 20px ${theme.palette.primary.main}40`,
-                              },
-                            },
-                            "& .MuiInputLabel-root": {
-                              color: "rgba(255, 255, 255, 0.8)",
-                              "&.Mui-focused": {
-                                color: theme.palette.primary.light,
-                              },
-                            },
-                            "& .MuiInputBase-input": {
-                              color: "white",
-                              "&::placeholder": {
-                                color: "rgba(255, 255, 255, 0.6)",
-                              },
-                            },
-                          }}
-                        />
-                      </Box>
-
-                      <TextField
-                        inputRef={rfRegEmail}
-                        type="email"
-                        label="Email Address"
-                        fullWidth
-                        margin="dense"
-                        variant="outlined"
-                        InputProps={{
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              <Email sx={{ color: "rgba(255,255,255,0.7)" }} />
-                            </InputAdornment>
-                          ),
-                        }}
-                        sx={{
-                          "& .MuiOutlinedInput-root": {
-                            backgroundColor: "rgba(255, 255, 255, 0.15)",
-                            borderRadius: 3,
-                            border: "1px solid rgba(255, 255, 255, 0.2)",
-                            transition: "all 0.3s ease",
-                            "&:hover": {
-                              backgroundColor: "rgba(255, 255, 255, 0.2)",
-                              border: "1px solid rgba(255, 255, 255, 0.4)",
-                            },
-                            "&.Mui-focused": {
-                              backgroundColor: "rgba(255, 255, 255, 0.25)",
-                              border: `2px solid ${theme.palette.primary.light}`,
-                              boxShadow: `0 0 20px ${theme.palette.primary.main}40`,
-                            },
-                          },
-                          "& .MuiInputLabel-root": {
-                            color: "rgba(255, 255, 255, 0.8)",
-                            "&.Mui-focused": {
-                              color: theme.palette.primary.light,
-                            },
-                          },
-                          "& .MuiInputBase-input": {
-                            color: "white",
-                            "&::placeholder": {
-                              color: "rgba(255, 255, 255, 0.6)",
-                            },
-                          },
-                        }}
-                      />
-
-                      <Box sx={{ mb: { xs: 0.5, sm: 0 } }} />
-
-                      <Box
-                        sx={{
-                          display: "flex",
-                          gap: { xs: 0.5, sm: 1.5 },
-                          flexDirection: { xs: "column", sm: "row" },
-                          mb: { xs: 0.5, sm: 0 },
-                        }}
-                      >
-                        <TextField
-                          inputRef={rfPhone}
-                          type="tel"
-                          label="Phone Number"
-                          fullWidth
-                          margin="dense"
-                          variant="outlined"
-                          sx={{
-                            "& .MuiOutlinedInput-root": {
-                              backgroundColor: "rgba(255, 255, 255, 0.15)",
-                              borderRadius: 3,
-                              border: "1px solid rgba(255, 255, 255, 0.2)",
-                              transition: "all 0.3s ease",
-                              "&:hover": {
-                                backgroundColor: "rgba(255, 255, 255, 0.2)",
-                                border: "1px solid rgba(255, 255, 255, 0.4)",
-                              },
-                              "&.Mui-focused": {
-                                backgroundColor: "rgba(255, 255, 255, 0.25)",
-                                border: `2px solid ${theme.palette.primary.light}`,
-                                boxShadow: `0 0 20px ${theme.palette.primary.main}40`,
-                              },
-                            },
-                            "& .MuiInputLabel-root": {
-                              color: "rgba(255, 255, 255, 0.8)",
-                              "&.Mui-focused": {
-                                color: theme.palette.primary.light,
-                              },
-                            },
-                            "& .MuiInputBase-input": {
-                              color: "white",
-                              "&::placeholder": {
-                                color: "rgba(255, 255, 255, 0.6)",
-                              },
-                            },
-                          }}
-                        />
-
-                        <TextField
-                          inputRef={rfAddress}
-                          type="text"
-                          label="Address (Optional)"
-                          fullWidth
-                          margin="dense"
-                          variant="outlined"
-                          sx={{
-                            "& .MuiOutlinedInput-root": {
-                              backgroundColor: "rgba(255, 255, 255, 0.15)",
-                              borderRadius: 3,
-                              border: "1px solid rgba(255, 255, 255, 0.2)",
-                              transition: "all 0.3s ease",
-                              "&:hover": {
-                                backgroundColor: "rgba(255, 255, 255, 0.2)",
-                                border: "1px solid rgba(255, 255, 255, 0.4)",
-                              },
-                              "&.Mui-focused": {
-                                backgroundColor: "rgba(255, 255, 255, 0.25)",
-                                border: `2px solid ${theme.palette.primary.light}`,
-                                boxShadow: `0 0 20px ${theme.palette.primary.main}40`,
-                              },
-                            },
-                            "& .MuiInputLabel-root": {
-                              color: "rgba(255, 255, 255, 0.8)",
-                              "&.Mui-focused": {
-                                color: theme.palette.primary.light,
-                              },
-                            },
-                            "& .MuiInputBase-input": {
-                              color: "white",
-                              "&::placeholder": {
-                                color: "rgba(255, 255, 255, 0.6)",
-                              },
-                            },
-                          }}
-                        />
-                      </Box>
-
-                      <Box
-                        sx={{
-                          display: "flex",
-                          gap: { xs: 0.5, sm: 1.5 },
-                          flexDirection: { xs: "column", sm: "row" },
-                          mb: { xs: 0.5, sm: 0 },
-                        }}
-                      >
-                        <TextField
-                          inputRef={rfRegPassword}
-                          type={showPassword ? "text" : "password"}
-                          label="Password"
-                          fullWidth
-                          margin="dense"
-                          variant="outlined"
-                          InputProps={{
-                            startAdornment: (
-                              <InputAdornment position="start">
-                                <Lock sx={{ color: "rgba(255,255,255,0.7)" }} />
-                              </InputAdornment>
-                            ),
-                            endAdornment: (
-                              <InputAdornment position="end">
-                                <IconButton
-                                  onClick={() => setShowPassword(!showPassword)}
-                                  edge="end"
-                                  sx={{ color: "rgba(255,255,255,0.7)" }}
-                                >
-                                  {showPassword ? (
-                                    <VisibilityOff />
-                                  ) : (
-                                    <Visibility />
-                                  )}
-                                </IconButton>
-                              </InputAdornment>
-                            ),
-                          }}
-                          sx={{
-                            "& .MuiOutlinedInput-root": {
-                              backgroundColor: "rgba(255, 255, 255, 0.15)",
-                              borderRadius: 3,
-                              border: "1px solid rgba(255, 255, 255, 0.2)",
-                              transition: "all 0.3s ease",
-                              "&:hover": {
-                                backgroundColor: "rgba(255, 255, 255, 0.2)",
-                                border: "1px solid rgba(255, 255, 255, 0.4)",
-                              },
-                              "&.Mui-focused": {
-                                backgroundColor: "rgba(255, 255, 255, 0.25)",
-                                border: `2px solid ${theme.palette.primary.light}`,
-                                boxShadow: `0 0 20px ${theme.palette.primary.main}40`,
-                              },
-                            },
-                            "& .MuiInputLabel-root": {
-                              color: "rgba(255, 255, 255, 0.8)",
-                              "&.Mui-focused": {
-                                color: theme.palette.primary.light,
-                              },
-                            },
-                            "& .MuiInputBase-input": {
-                              color: "white",
-                              "&::placeholder": {
-                                color: "rgba(255, 255, 255, 0.6)",
-                              },
-                            },
-                          }}
-                        />
-
-                        <TextField
-                          inputRef={rfConfirmPassword}
-                          type={showConfirmPassword ? "text" : "password"}
-                          label="Confirm Password"
-                          fullWidth
-                          margin="dense"
-                          variant="outlined"
-                          InputProps={{
-                            startAdornment: (
-                              <InputAdornment position="start">
-                                <Lock sx={{ color: "rgba(255,255,255,0.7)" }} />
-                              </InputAdornment>
-                            ),
-                            endAdornment: (
-                              <InputAdornment position="end">
-                                <IconButton
-                                  onClick={() =>
-                                    setShowConfirmPassword(!showConfirmPassword)
-                                  }
-                                  edge="end"
-                                  sx={{ color: "rgba(255,255,255,0.7)" }}
-                                >
-                                  {showConfirmPassword ? (
-                                    <VisibilityOff />
-                                  ) : (
-                                    <Visibility />
-                                  )}
-                                </IconButton>
-                              </InputAdornment>
-                            ),
-                          }}
-                          sx={{
-                            "& .MuiOutlinedInput-root": {
-                              backgroundColor: "rgba(255, 255, 255, 0.15)",
-                              borderRadius: 3,
-                              border: "1px solid rgba(255, 255, 255, 0.2)",
-                              transition: "all 0.3s ease",
-                              "&:hover": {
-                                backgroundColor: "rgba(255, 255, 255, 0.2)",
-                                border: "1px solid rgba(255, 255, 255, 0.4)",
-                              },
-                              "&.Mui-focused": {
-                                backgroundColor: "rgba(255, 255, 255, 0.25)",
-                                border: `2px solid ${theme.palette.primary.light}`,
-                                boxShadow: `0 0 20px ${theme.palette.primary.main}40`,
-                              },
-                            },
-                            "& .MuiInputLabel-root": {
-                              color: "rgba(255, 255, 255, 0.8)",
-                              "&.Mui-focused": {
-                                color: theme.palette.primary.light,
-                              },
-                            },
-                            "& .MuiInputBase-input": {
-                              color: "white",
-                              "&::placeholder": {
-                                color: "rgba(255, 255, 255, 0.6)",
-                              },
-                            },
-                          }}
-                        />
-                      </Box>
-
-                      <Button
-                        type="submit"
-                        variant="contained"
-                        fullWidth
-                        size="large"
-                        disabled={registerLoading}
-                        startIcon={
-                          registerLoading ? (
-                            <CircularProgress size={20} color="inherit" />
-                          ) : (
-                            <Login />
-                          )
-                        }
-                        sx={{
-                          mt: { xs: 1, sm: 2 },
-                          py: { xs: 0.8, sm: 1.2 },
-                          borderRadius: { xs: 2, sm: 3 },
-                          background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.light})`,
-                          boxShadow: `0 4px 15px ${theme.palette.primary.main}40`,
-                          transition: "all 0.3s ease",
-                          textTransform: "none",
-                          fontSize: { xs: "0.9rem", sm: "1.1rem" },
-                          fontWeight: 600,
-                          letterSpacing: "0.5px",
-                          "&:hover": {
-                            background: `linear-gradient(45deg, ${theme.palette.primary.dark}, ${theme.palette.primary.main})`,
-                            boxShadow: `0 6px 20px ${theme.palette.primary.main}60`,
-                            transform: "translateY(-2px)",
-                          },
-                          "&:disabled": {
-                            background: "rgba(255, 255, 255, 0.2)",
-                            color: theme.palette.primary.main,
-                          },
-                        }}
-                      >
-                        {registerLoading
-                          ? "Creating Account..."
-                          : "Create Account"}
-                      </Button>
-
-                      <Typography
-                        variant="body2"
-                        color="white"
-                        align="center"
-                        sx={{
-                          mt: { xs: 1, sm: 1.5 },
-                          cursor: "pointer",
-                          transition: "all 0.3s ease",
-                          "&:hover": {
-                            textDecoration: "underline",
-                            color: theme.palette.primary.light,
-                            transform: "scale(1.05)",
-                          },
-                        }}
-                        onClick={() => setIsLoginMode(true)}
-                      >
-                        Already have an account? Sign in here
-                      </Typography>
-                    </form>
-                  )}
-                </Card>
-              </Slide>
-            </Grid>
-          </Grid>
-        </Container>
+        <Box className="brand-panel" sx={{ background: backgroundGradient }}>
+          <Box
+            component="img"
+            src="/tickahub.png"
+            alt="TickaHub"
+            sx={{
+              width: 64,
+              height: 64,
+              borderRadius: 3,
+              mb: 2,
+              boxShadow: `0 12px 32px ${tickahub.gold}33`,
+            }}
+          />
+          {registerActive ? (
+            <Box className="brand-content">
+              <Typography
+                variant="h4"
+                sx={{
+                  fontWeight: 900,
+                  background: goldGradient,
+                  backgroundClip: "text",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  mb: 1.5,
+                }}
+              >
+                One of us?
+              </Typography>
+              <Typography sx={{ color: tickahub.textMuted, mb: 3, maxWidth: 300, lineHeight: 1.6 }}>
+                Welcome back! Sign in to continue your journey with TickaHub.
+              </Typography>
+              <button type="button" className="ghost-btn" onClick={switchToSignIn}>
+                Sign in
+              </button>
+            </Box>
+          ) : (
+            <Box className="brand-content">
+              <Typography
+                variant="h4"
+                sx={{
+                  fontWeight: 900,
+                  background: goldGradient,
+                  backgroundClip: "text",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  mb: 1.5,
+                }}
+              >
+                New here?
+              </Typography>
+              <Typography sx={{ color: tickahub.textMuted, mb: 3, maxWidth: 300, lineHeight: 1.6 }}>
+                Enter your details and start your journey as an{" "}
+                {accountType === "organizer" ? "event organizer" : "artist"}.
+              </Typography>
+              <button type="button" className="ghost-btn" onClick={switchToSignUp}>
+                Sign up
+              </button>
+            </Box>
+          )}
+        </Box>
       </Box>
 
       <Dialog
@@ -1173,63 +668,38 @@ export default function LoginPage(props) {
         onClose={() => setOpenResetDialog(false)}
         fullWidth
         maxWidth="xs"
-        TransitionComponent={Slide}
-        transitionDuration={300}
+        PaperProps={{ sx: { bgcolor: tickahub.surface, border: `1px solid ${tickahub.borderLight}` } }}
       >
-        <DialogTitle
-          sx={{
-            background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.light})`,
-            color: "white",
-            fontWeight: 600,
-          }}
-        >
-          Reset Password
+        <DialogTitle sx={{ background: goldGradient, color: tickahub.navy, fontWeight: 800 }}>
+          Reset password
         </DialogTitle>
         <Divider />
-        <DialogContent sx={{ pt: 3 }}>
-          <DialogContentText sx={{ mb: 2 }}>
-            Please enter your email address to reset your password.
+        <DialogContent>
+          <DialogContentText sx={{ color: tickahub.textMuted, mb: 2 }}>
+            Enter your {accountType} account email.
           </DialogContentText>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              reset();
+          <TextField
+            inputRef={rsEmail}
+            type="email"
+            label="Email address"
+            fullWidth
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Email sx={{ color: tickahub.textMuted }} />
+                </InputAdornment>
+              ),
             }}
-          >
-            <TextField
-              inputRef={rsEmail}
-              type="email"
-              label="Email Address"
-              fullWidth
-              margin="normal"
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Email />
-                  </InputAdornment>
-                ),
-              }}
-            />
-            <DialogActions sx={{ mt: 2 }}>
-              <Button
-                onClick={() => setOpenResetDialog(false)}
-                variant="outlined"
-                color="primary"
-                disabled={resetLoading}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                variant="contained"
-                color="primary"
-                disabled={resetLoading}
-                startIcon={resetLoading ? <CircularProgress size={16} /> : null}
-              >
-                {resetLoading ? "Processing..." : "Submit"}
-              </Button>
-            </DialogActions>
-          </form>
+            sx={fieldSx}
+          />
+          <DialogActions sx={{ px: 0, mt: 2 }}>
+            <Button onClick={() => setOpenResetDialog(false)} sx={{ color: "#fff" }}>
+              Cancel
+            </Button>
+            <Button onClick={resetPassword} disabled={resetLoading} sx={{ background: goldGradient, color: tickahub.navy, fontWeight: 700 }}>
+              {resetLoading ? "Sending..." : "Submit"}
+            </Button>
+          </DialogActions>
         </DialogContent>
       </Dialog>
     </Box>

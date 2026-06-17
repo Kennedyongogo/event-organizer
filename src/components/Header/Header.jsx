@@ -5,232 +5,209 @@ import {
   Menu,
   MenuItem,
   Typography,
-  CircularProgress,
   Avatar,
+  ListItemIcon,
+  ListItemText,
 } from "@mui/material";
 import {
   Menu as MenuIcon,
   ArrowDropDown as ArrowDropDownIcon,
-  Person as PersonIcon,
   AccountCircle as AccountCircleIcon,
   Lock as LockIcon,
   Logout as LogoutIcon,
 } from "@mui/icons-material";
-import UserAccount from "./userAccount";
-import EditUserDetails from "./editUserDetails";
-import ChangePassword from "./changePassword";
 import { useNavigate } from "react-router-dom";
+import UserAccount from "./userAccount";
+import { tickahub, goldGradient, cyanGradient } from "../../tickahubTheme";
+import {
+  getDisplayName,
+  getInitials,
+  getRoleLabel,
+  getUserRole,
+  getProfileImageUrl,
+} from "../../utils/userDisplay";
 
-const LoadingScreen = () => (
-  <Box
-    sx={{
-      position: "fixed",
-      top: 0,
-      left: 0,
-      width: "100%",
-      height: "100%",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: "rgba(255, 255, 255, 1)",
-      zIndex: 1300, // Ensure it covers other components
-    }}
-  >
-    <CircularProgress />
-  </Box>
-);
-
-// Helper to build URL for uploaded assets using Vite proxy
-const buildImageUrl = (imageUrl) => {
-  if (!imageUrl) return "";
-  if (imageUrl.startsWith("http")) return imageUrl;
-
-  // Use relative URLs - Vite proxy will handle routing to backend
-  if (imageUrl.startsWith("uploads/")) return `/${imageUrl}`;
-  if (imageUrl.startsWith("/uploads/")) return imageUrl;
-  return imageUrl;
-};
-
-// Helper to get user initials
-const getInitials = (name) => {
-  if (!name) return "U";
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
-  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
-};
-
-export default function Header(props) {
-  const [currentUser, setCurrentUser] = useState("");
+export default function Header({ setUser, handleDrawerOpen, open, isMobile = false }) {
+  const [currentUser, setCurrentUser] = useState(null);
   const [anchorEl, setAnchorEl] = useState(null);
   const [toggleAccount, setToggleAccount] = useState(false);
-  const [toggleEditDetails, setToggleEditDetails] = useState(false);
-  const [toggleChangePass, setToggleChangePass] = useState(false);
-  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const userRole = getUserRole();
+  const isArtist = userRole === "artist";
 
   useEffect(() => {
-    setLoading(true);
-    // Load user from localStorage instead of API call
     const savedUser = localStorage.getItem("user");
     const token = localStorage.getItem("token");
-
     if (savedUser && token) {
       const userData = JSON.parse(savedUser);
       setCurrentUser(userData);
-      props.setUser(userData);
-      setLoading(false);
+      setUser?.(userData);
     } else {
-      // Redirect to login if no user or token
       window.location.href = "/";
     }
-  }, []);
+
+    const onUserUpdated = (e) => {
+      setCurrentUser(e.detail);
+      setUser?.(e.detail);
+    };
+    window.addEventListener("tickahub-user-updated", onUserUpdated);
+    return () => window.removeEventListener("tickahub-user-updated", onUserUpdated);
+  }, [setUser]);
+
+  const displayName = getDisplayName(currentUser);
+  const avatarSrc = getProfileImageUrl(currentUser);
 
   const logout = () => {
     localStorage.clear();
     navigate("/");
-    fetch("/api/organizers/logout", {
-      method: "GET",
-      credentials: "include",
-    });
-  };
-
-  const handleClick = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleClose = () => {
-    setAnchorEl(null);
   };
 
   return (
     <>
-      {loading && <LoadingScreen />}
       <Box
         sx={{
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between",
-          p: 2,
-          color: "white",
           width: "100%",
+          minHeight: 64,
+          color: "#fff",
         }}
       >
-        <IconButton
-          aria-label="open drawer"
-          onClick={props.handleDrawerOpen}
-          edge="start"
-          sx={{
-            color: "white",
-            marginRight: 5,
-            ...(props.open && { display: "none" }),
-          }}
-        >
-          <MenuIcon />
-        </IconButton>
-
-        <Box sx={{ flexGrow: 1 }}></Box>
-
-        <Box sx={{ display: "flex", alignItems: "center" }}>
-          <Typography variant="body1" sx={{ mr: 1 }}>
-            {currentUser?.contact_person || currentUser?.organization_name}
-          </Typography>
-
-          {/* Organization Logo or Avatar */}
-          <Box sx={{ mr: 1 }}>
-            {currentUser?.logo ? (
-              <Avatar
-                src={buildImageUrl(currentUser.logo)}
-                alt={currentUser?.organization_name}
-                sx={{
-                  width: 32,
-                  height: 32,
-                  border: "2px solid rgba(255, 255, 255, 0.3)",
-                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-                }}
-              />
-            ) : (
-              <Avatar
-                sx={{
-                  width: 32,
-                  height: 32,
-                  backgroundColor: "rgba(255, 255, 255, 0.2)",
-                  border: "2px solid rgba(255, 255, 255, 0.3)",
-                  color: "white",
-                  fontWeight: "bold",
-                  fontSize: "0.875rem",
-                }}
-              >
-                {getInitials(
-                  currentUser?.organization_name || currentUser?.contact_person
-                )}
-              </Avatar>
-            )}
-          </Box>
-
-          <IconButton color="inherit" onClick={handleClick}>
-            <ArrowDropDownIcon />
+        {!isMobile && (
+          <IconButton
+            aria-label="open drawer"
+            onClick={handleDrawerOpen}
+            edge="start"
+            sx={{
+              color: "#fff",
+              mr: 2,
+              ...(open && { display: "none" }),
+            }}
+          >
+            <MenuIcon />
           </IconButton>
-        </Box>
+        )}
 
-        <Menu
-          anchorEl={anchorEl}
-          open={Boolean(anchorEl)}
-          onClose={handleClose}
-        >
-          <MenuItem
-            onClick={() => {
-              setToggleAccount(true);
-              handleClose();
-            }}
-          >
-            <AccountCircleIcon sx={{ mr: 1 }} /> Account
-          </MenuItem>
-          <MenuItem
-            onClick={() => {
-              navigate("/settings");
-              handleClose();
-            }}
-          >
-            <LockIcon sx={{ mr: 1 }} /> Change Password
-          </MenuItem>
-          <MenuItem
-            onClick={() => {
-              logout();
-              handleClose();
-            }}
-          >
-            <LogoutIcon sx={{ mr: 1 }} /> Logout
-          </MenuItem>
-        </Menu>
+        {isMobile && (
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mr: 1 }}>
+            <Box component="img" src="/tickahub.png" alt="TickaHub" sx={{ width: 28, height: 28, borderRadius: 1.25 }} />
+            <Typography
+              sx={{
+                fontWeight: 800,
+                fontSize: "0.95rem",
+                background: goldGradient,
+                backgroundClip: "text",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+              }}
+            >
+              TickaHub
+            </Typography>
+          </Box>
+        )}
+
+        <Box sx={{ flexGrow: 1 }} />
 
         {currentUser && (
-          <UserAccount
-            onClose={() => {
-              setToggleAccount(false);
+          <Box
+            onClick={(e) => setAnchorEl(e.currentTarget)}
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1.25,
+              px: 1.5,
+              py: 0.75,
+              borderRadius: 2,
+              cursor: "pointer",
+              border: `1px solid ${tickahub.borderSubtle}`,
+              bgcolor: `${tickahub.navy}88`,
+              "&:hover": { bgcolor: isArtist ? `${tickahub.cyan}14` : `${tickahub.gold}14` },
             }}
-            open={toggleAccount}
-            currentUser={currentUser}
-          />
-        )}
-        {currentUser && (
-          <EditUserDetails
-            open={toggleEditDetails}
-            onClose={() => {
-              setToggleEditDetails(false);
-            }}
-            currentUser={currentUser}
-          />
-        )}
-        {currentUser && (
-          <ChangePassword
-            open={toggleChangePass}
-            onClose={() => {
-              setToggleChangePass(false);
-            }}
-            currentUser={currentUser}
-          />
+          >
+            <Avatar
+              src={avatarSrc || undefined}
+              sx={{
+                width: 36,
+                height: 36,
+                background: isArtist ? cyanGradient : goldGradient,
+                color: tickahub.navy,
+                fontWeight: 800,
+                fontSize: "0.85rem",
+              }}
+            >
+              {getInitials(displayName)}
+            </Avatar>
+            <Box sx={{ display: { xs: "none", sm: "block" }, pr: 0.5 }}>
+              <Typography sx={{ fontWeight: 700, fontSize: "0.9rem", lineHeight: 1.2 }}>
+                {displayName}
+              </Typography>
+              <Typography sx={{ color: tickahub.textMuted, fontSize: "0.72rem" }}>
+                {getRoleLabel()}
+              </Typography>
+            </Box>
+            <ArrowDropDownIcon sx={{ color: tickahub.textMuted, fontSize: 22 }} />
+          </Box>
         )}
       </Box>
+
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={() => setAnchorEl(null)}
+        PaperProps={{
+          sx: {
+            mt: 1,
+            bgcolor: tickahub.surface,
+            border: `1px solid ${tickahub.borderSubtle}`,
+            minWidth: 200,
+          },
+        }}
+      >
+        <MenuItem
+          onClick={() => {
+            setToggleAccount(true);
+            setAnchorEl(null);
+          }}
+          sx={{ color: "#fff" }}
+        >
+          <ListItemIcon>
+            <AccountCircleIcon sx={{ color: tickahub.cyan }} />
+          </ListItemIcon>
+          <ListItemText primary="Account" />
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            navigate("/settings");
+            setAnchorEl(null);
+          }}
+          sx={{ color: "#fff" }}
+        >
+          <ListItemIcon>
+            <LockIcon sx={{ color: tickahub.gold }} />
+          </ListItemIcon>
+          <ListItemText primary="Change password" />
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            logout();
+            setAnchorEl(null);
+          }}
+          sx={{ color: "#ff8a8a" }}
+        >
+          <ListItemIcon>
+            <LogoutIcon sx={{ color: "#ff8a8a" }} />
+          </ListItemIcon>
+          <ListItemText primary="Logout" />
+        </MenuItem>
+      </Menu>
+
+      {currentUser && (
+        <UserAccount
+          open={toggleAccount}
+          onClose={() => setToggleAccount(false)}
+          currentUser={currentUser}
+        />
+      )}
     </>
   );
 }

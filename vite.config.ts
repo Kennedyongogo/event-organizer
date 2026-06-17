@@ -1,5 +1,5 @@
 import { defineConfig } from "vitest/config";
-import react from "@vitejs/plugin-react-swc";
+import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import svgr from "vite-plugin-svgr";
 
@@ -74,6 +74,12 @@ export default defineConfig({
         target: "http://localhost:4000",
         changeOrigin: true,
         secure: false,
+      },
+      "/nominatim": {
+        target: "https://nominatim.openstreetmap.org",
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/nominatim/, ""),
       },
     },
   },
