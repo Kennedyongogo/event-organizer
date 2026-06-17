@@ -12,6 +12,11 @@ import Analytics from "./Analytics/Analytics";
 import MyProfile from "./Profile/MyProfile";
 import ArtistSchedule from "./Schedule/ArtistSchedule";
 
+function HomeRedirect() {
+  const role = localStorage.getItem("userRole");
+  return <Navigate to={role === "artist" ? "/profile" : "/analytics"} replace />;
+}
+
 function PageRoutes() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -68,7 +73,7 @@ function PageRoutes() {
           </Box>
         ) : (
           <Routes>
-            <Route path="home" element={<Navigate to="/profile" replace />} />
+            <Route path="home" element={<HomeRedirect />} />
             <Route path="profile" element={<MyProfile />} />
             <Route path="schedule" element={<ArtistSchedule />} />
             <Route path="events" element={<Events />} />

@@ -249,7 +249,8 @@ export default function LoginPage() {
     try {
       const data = accountType === "organizer" ? await loginOrganizer(email, password) : await loginArtist(email, password);
       Swal.fire({ icon: "success", title: "Welcome back", text: data.message, timer: 1500, showConfirmButton: false, ...swalDark });
-      setTimeout(() => navigate("/profile"), 1500);
+      const destination = accountType === "organizer" ? "/analytics" : "/profile";
+      setTimeout(() => navigate(destination), 1500);
     } catch (err) {
       showLoginError(err);
     } finally {
