@@ -37,6 +37,8 @@ import VenueMapPicker from "./VenueMapPicker";
 import EventCategorySelect from "./EventCategorySelect";
 import { appendEventScheduleFields, parseDateValue, parseTimeValue } from "./eventFormPickers";
 import { getTicketTierValidation } from "./ticketTierValidation";
+import EventLineupFields from "./EventLineupFields";
+import { parseLineupFromApi, serializeLineupForSubmit } from "./eventLineup";
 
 const EventEdit = () => {
   const { id } = useParams();
@@ -61,6 +63,7 @@ const EventEdit = () => {
     status: "pending",
   });
   const [ticketPrices, setTicketPrices] = useState([{ category: "", price: "", quantity: "" }]);
+  const [lineup, setLineup] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
   const [filePreview, setFilePreview] = useState("");
   const [currentImage, setCurrentImage] = useState("");
@@ -125,6 +128,7 @@ const EventEdit = () => {
               }))
             : [{ category: "", price: "", quantity: "" }]
         );
+        setLineup(parseLineupFromApi(data.lineup));
         setCurrentImage(data.image_url || data.image || "");
       } else {
         setError(result.message || "Failed to fetch event details");
@@ -189,6 +193,7 @@ const EventEdit = () => {
           ...(t.quantity !== "" ? { quantity: parseInt(t.quantity, 10) } : {}),
         }));
       formData.append("ticket_prices", JSON.stringify(tiers));
+      formData.append("lineup", JSON.stringify(serializeLineupForSubmit(lineup)));
       if (selectedFile) formData.append("event_image", selectedFile);
 
       const token = localStorage.getItem("token");
@@ -360,6 +365,10 @@ const EventEdit = () => {
             onLocationChange={handleLocationChange}
             required
           />
+
+          <Divider sx={{ borderColor: tickahub.borderSubtle }} />
+          <SectionLabel accent={tickahub.gold}>Lineup</SectionLabel>
+          <EventLineupFields lineup={lineup} onChange={setLineup} />
 
           <Divider sx={{ borderColor: tickahub.borderSubtle }} />
           <SectionLabel accent={tickahub.gold}>Tickets</SectionLabel>

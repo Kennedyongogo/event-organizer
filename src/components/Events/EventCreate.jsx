@@ -35,6 +35,8 @@ import VenueMapPicker from "./VenueMapPicker";
 import EventCategorySelect from "./EventCategorySelect";
 import { appendEventScheduleFields } from "./eventFormPickers";
 import { getTicketTierValidation } from "./ticketTierValidation";
+import EventLineupFields from "./EventLineupFields";
+import { serializeLineupForSubmit } from "./eventLineup";
 
 const EventCreate = () => {
   const navigate = useNavigate();
@@ -54,6 +56,7 @@ const EventCreate = () => {
     status: "pending",
   });
   const [ticketPrices, setTicketPrices] = useState([{ category: "", price: "", quantity: "" }]);
+  const [lineup, setLineup] = useState([]);
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [filePreviews, setFilePreviews] = useState([]);
 
@@ -125,6 +128,9 @@ const EventCreate = () => {
           ...(t.quantity !== "" ? { quantity: parseInt(t.quantity, 10) } : {}),
         }));
       if (tiers.length) formData.append("ticket_prices", JSON.stringify(tiers));
+
+      const lineupPayload = serializeLineupForSubmit(lineup);
+      if (lineupPayload.length) formData.append("lineup", JSON.stringify(lineupPayload));
 
       selectedFiles.forEach((file) => formData.append("event_image", file));
 
@@ -229,6 +235,10 @@ const EventCreate = () => {
             onLocationChange={handleLocationChange}
             required
           />
+
+          <Divider sx={{ borderColor: tickahub.borderSubtle }} />
+          <SectionLabel accent={tickahub.gold}>Lineup</SectionLabel>
+          <EventLineupFields lineup={lineup} onChange={setLineup} />
 
           <Divider sx={{ borderColor: tickahub.borderSubtle }} />
           <SectionLabel accent={tickahub.gold}>Tickets</SectionLabel>
