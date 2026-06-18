@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   Box,
   Typography,
@@ -13,7 +12,6 @@ import {
   Stack,
   TextField,
   Button,
-  IconButton,
   alpha,
 } from "@mui/material";
 import {
@@ -34,7 +32,6 @@ import {
   Event as EventIcon,
   AttachMoney as MoneyIcon,
   ConfirmationNumber as TicketIcon,
-  Refresh as RefreshIcon,
   TrendingUp as TrendingIcon,
   CalendarMonth as CalendarIcon,
   HourglassEmpty as PendingIcon,
@@ -46,7 +43,6 @@ import {
   tabsSx,
   PageHeader,
   eventStatusColor,
-  secondaryButtonSx,
 } from "../shared/tickahubPageStyles";
 
 const STATUS_CHART_COLORS = {
@@ -82,29 +78,7 @@ const formatDate = (value) => {
 const startOfYear = () => new Date(new Date().getFullYear(), 0, 1).toISOString().split("T")[0];
 const endOfYear = () => new Date(new Date().getFullYear(), 11, 31).toISOString().split("T")[0];
 
-const datePresets = [
-  {
-    label: "7 days",
-    getRange: () => {
-      const end = new Date();
-      const start = new Date();
-      start.setDate(end.getDate() - 6);
-      return { startDate: start.toISOString().split("T")[0], endDate: end.toISOString().split("T")[0] };
-    },
-  },
-  {
-    label: "30 days",
-    getRange: () => {
-      const end = new Date();
-      const start = new Date();
-      start.setDate(end.getDate() - 29);
-      return { startDate: start.toISOString().split("T")[0], endDate: end.toISOString().split("T")[0] };
-    },
-  },
-  { label: "This year", getRange: () => ({ startDate: startOfYear(), endDate: endOfYear() }) },
-];
-
-function MetricCard({ label, value, hint, icon: Icon, accent = tickahub.cyan }) {
+function MetricCard({ label, value, icon: Icon, accent = tickahub.cyan }) {
   return (
     <Paper
       elevation={0}
@@ -115,7 +89,7 @@ function MetricCard({ label, value, hint, icon: Icon, accent = tickahub.cyan }) 
         overflow: "hidden",
         bgcolor: tickahub.surface,
         border: `1px solid ${tickahub.borderSubtle}`,
-        borderRadius: 3,
+        borderRadius: 0,
       }}
     >
       <Box
@@ -129,7 +103,7 @@ function MetricCard({ label, value, hint, icon: Icon, accent = tickahub.cyan }) 
           background: `radial-gradient(circle, ${alpha(accent, 0.2)} 0%, transparent 70%)`,
         }}
       />
-      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
         <Box sx={{ minWidth: 0 }}>
           <Typography sx={{ color: tickahub.textMuted, fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>
             {label}
@@ -137,10 +111,9 @@ function MetricCard({ label, value, hint, icon: Icon, accent = tickahub.cyan }) 
           <Typography sx={{ color: "#fff", fontWeight: 800, fontSize: "1.45rem", mt: 0.75, lineHeight: 1.1 }}>
             {value}
           </Typography>
-          {hint && <Typography sx={{ color: tickahub.textMuted, fontSize: "0.78rem", mt: 0.5 }}>{hint}</Typography>}
         </Box>
         {Icon && (
-          <Box sx={{ width: 40, height: 40, borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center", bgcolor: alpha(accent, 0.14), border: `1px solid ${alpha(accent, 0.28)}`, flexShrink: 0 }}>
+          <Box sx={{ width: 40, height: 40, borderRadius: 0, display: "flex", alignItems: "center", justifyContent: "center", bgcolor: alpha(accent, 0.14), border: `1px solid ${alpha(accent, 0.28)}`, flexShrink: 0 }}>
             <Icon sx={{ color: accent, fontSize: 22 }} />
           </Box>
         )}
@@ -149,28 +122,26 @@ function MetricCard({ label, value, hint, icon: Icon, accent = tickahub.cyan }) 
   );
 }
 
-function Panel({ title, subtitle, children }) {
+function Panel({ title, children }) {
   return (
-    <Paper elevation={0} sx={{ bgcolor: tickahub.surface, border: `1px solid ${tickahub.borderSubtle}`, borderRadius: 3, overflow: "hidden", width: "100%" }}>
-      <Box sx={{ px: 2.5, py: 1.75, borderBottom: `1px solid ${tickahub.borderSubtle}`, background: `linear-gradient(135deg, ${alpha(tickahub.gold, 0.1)}, transparent)` }}>
-        <Typography sx={{ color: "#fff", fontWeight: 800, fontSize: "0.95rem" }}>{title}</Typography>
-        {subtitle && <Typography sx={{ color: tickahub.textMuted, fontSize: "0.78rem", mt: 0.25 }}>{subtitle}</Typography>}
+    <Paper elevation={0} sx={{ bgcolor: tickahub.surface, border: `1px solid ${tickahub.borderSubtle}`, borderRadius: 0, overflow: "hidden", width: "100%" }}>
+      <Box sx={{ px: 2.5, py: 1.25, borderBottom: `1px solid ${tickahub.borderSubtle}`, background: `linear-gradient(135deg, ${alpha(tickahub.gold, 0.1)}, transparent)` }}>
+        <Typography sx={{ color: "#fff", fontWeight: 800, fontSize: "0.9rem" }}>{title}</Typography>
       </Box>
       <Box sx={{ p: 2.5 }}>{children}</Box>
     </Paper>
   );
 }
 
-function ActivityRow({ primary, secondary, meta, chip }) {
+function ActivityRow({ primary, meta, chip }) {
   return (
     <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1} sx={{ py: 1.25, borderBottom: `1px solid ${tickahub.borderSubtle}`, "&:last-child": { borderBottom: "none" } }}>
-      <Box sx={{ minWidth: 0, flex: 1 }}>
-        <Typography sx={{ color: "#fff", fontWeight: 600, fontSize: "0.88rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{primary}</Typography>
-        <Typography sx={{ color: tickahub.textMuted, fontSize: "0.78rem", mt: 0.25 }}>{secondary}</Typography>
-      </Box>
-      <Stack alignItems="flex-end" spacing={0.5} sx={{ flexShrink: 0 }}>
+      <Typography sx={{ color: "#fff", fontWeight: 600, fontSize: "0.88rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>
+        {primary}
+      </Typography>
+      <Stack direction="row" alignItems="center" spacing={1} sx={{ flexShrink: 0 }}>
         {chip}
-        <Typography sx={{ color: tickahub.textMuted, fontSize: "0.72rem" }}>{meta}</Typography>
+        {meta && <Typography sx={{ color: tickahub.textMuted, fontSize: "0.72rem" }}>{meta}</Typography>}
       </Stack>
     </Stack>
   );
@@ -184,7 +155,6 @@ function StatusChip({ status }) {
 }
 
 export default function Analytics() {
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -256,7 +226,6 @@ export default function Analytics() {
   }, [fetchAnalyticsData]);
 
   const metrics = overview?.metrics;
-  const rates = overview?.rates;
 
   const statusChartData = useMemo(
     () => (events?.eventsByStatus || []).map((row) => ({ name: row.status, count: row.count })),
@@ -293,48 +262,42 @@ export default function Analytics() {
     <Stack spacing={2}>
       <Grid container spacing={2}>
         <Grid size={{ xs: 6, md: 3 }}>
-          <MetricCard label="My events" value={metrics?.events?.total ?? 0} hint={`${metrics?.events?.approved ?? 0} approved`} icon={EventIcon} accent={tickahub.cyan} />
+          <MetricCard label="My events" value={metrics?.events?.total ?? 0} icon={EventIcon} accent={tickahub.cyan} />
         </Grid>
         <Grid size={{ xs: 6, md: 3 }}>
-          <MetricCard label="Upcoming" value={metrics?.events?.upcoming ?? 0} hint="Approved & scheduled ahead" icon={CalendarIcon} accent={tickahub.gold} />
+          <MetricCard label="Upcoming" value={metrics?.events?.upcoming ?? 0} icon={CalendarIcon} accent={tickahub.gold} />
         </Grid>
         <Grid size={{ xs: 6, md: 3 }}>
-          <MetricCard label="Tickets sold" value={metrics?.tickets?.sold ?? 0} hint={`${metrics?.events?.pending ?? 0} events pending review`} icon={TicketIcon} accent={tickahub.cyan} />
+          <MetricCard label="Tickets sold" value={metrics?.tickets?.sold ?? 0} icon={TicketIcon} accent={tickahub.cyan} />
         </Grid>
         <Grid size={{ xs: 6, md: 3 }}>
-          <MetricCard label="Pending review" value={metrics?.events?.pending ?? 0} hint={`${rates?.approvalRate ?? 0}% approval rate`} icon={PendingIcon} accent={tickahub.gold} />
+          <MetricCard label="Pending review" value={metrics?.events?.pending ?? 0} icon={PendingIcon} accent={tickahub.gold} />
         </Grid>
       </Grid>
 
       <Grid container spacing={2}>
         <Grid size={{ xs: 12, md: 4 }}>
-          <MetricCard label="My earnings" value={formatKes(metrics?.sales?.earnings)} hint="Your share after platform fee" icon={MoneyIcon} accent={tickahub.gold} />
+          <MetricCard label="My earnings" value={formatKes(metrics?.sales?.earnings)} icon={MoneyIcon} accent={tickahub.gold} />
         </Grid>
         <Grid size={{ xs: 12, md: 4 }}>
-          <MetricCard label="Gross sales" value={formatKes(metrics?.sales?.gross)} hint="Total ticket revenue" icon={TrendingIcon} accent={tickahub.cyan} />
+          <MetricCard label="Gross sales" value={formatKes(metrics?.sales?.gross)} icon={TrendingIcon} accent={tickahub.cyan} />
         </Grid>
         <Grid size={{ xs: 12, md: 4 }}>
-          <MetricCard label="Platform fees" value={formatKes(metrics?.sales?.platformFees)} hint="TickaHub commission" icon={MoneyIcon} accent={tickahub.cyanDark} />
+          <MetricCard label="Platform fees" value={formatKes(metrics?.sales?.platformFees)} icon={MoneyIcon} accent={tickahub.cyanDark} />
         </Grid>
       </Grid>
 
       <Grid container spacing={2}>
         <Grid size={{ xs: 12, md: 6 }}>
-          <Panel title="Recent events" subtitle="Your latest event activity">
+          <Panel title="Recent events">
             {(overview?.recent?.events || []).length === 0 ? (
-              <Typography sx={{ color: tickahub.textMuted, fontSize: "0.85rem" }}>
-                No events yet.{" "}
-                <Button size="small" onClick={() => navigate("/events/create")} sx={{ color: tickahub.cyan, textTransform: "none", p: 0, minWidth: 0, verticalAlign: "baseline" }}>
-                  Create your first event
-                </Button>
-              </Typography>
+              <Typography sx={{ color: tickahub.textMuted, fontSize: "0.85rem" }}>—</Typography>
             ) : (
               overview.recent.events.map((event) => (
                 <ActivityRow
                   key={event.id}
                   primary={event.name}
-                  secondary={event.eventDate ? `Event date: ${formatDate(event.eventDate)}` : "—"}
-                  meta={formatDate(event.createdAt)}
+                  meta={formatDate(event.eventDate || event.createdAt)}
                   chip={<StatusChip status={event.status} />}
                 />
               ))
@@ -342,17 +305,16 @@ export default function Analytics() {
           </Panel>
         </Grid>
         <Grid size={{ xs: 12, md: 6 }}>
-          <Panel title="Recent ticket sales" subtitle="Paid orders on your events">
+          <Panel title="Recent ticket sales">
             {(overview?.recent?.purchases || []).length === 0 ? (
-              <Typography sx={{ color: tickahub.textMuted, fontSize: "0.85rem" }}>No ticket sales in this period</Typography>
+              <Typography sx={{ color: tickahub.textMuted, fontSize: "0.85rem" }}>—</Typography>
             ) : (
               overview.recent.purchases.map((purchase) => (
                 <ActivityRow
                   key={purchase.id}
                   primary={purchase.eventName}
-                  secondary={purchase.buyerName}
-                  meta={formatDate(purchase.createdAt)}
-                  chip={<Typography sx={{ color: tickahub.gold, fontWeight: 700, fontSize: "0.8rem" }}>{formatKes(purchase.amount)}</Typography>}
+                  meta={formatKes(purchase.amount)}
+                  chip={<Typography sx={{ color: tickahub.textMuted, fontSize: "0.72rem" }}>{formatDate(purchase.createdAt)}</Typography>}
                 />
               ))
             )}
@@ -372,14 +334,14 @@ export default function Analytics() {
           <MetricCard label="Approved" value={events?.summary?.approvedEvents ?? 0} icon={EventIcon} accent={tickahub.gold} />
         </Grid>
         <Grid size={{ xs: 6, md: 3 }}>
-          <MetricCard label="Tickets sold" value={events?.summary?.totalTicketsSold ?? 0} hint={`Avg ${events?.summary?.avgTicketsPerEvent ?? 0} per order`} icon={TicketIcon} accent={tickahub.cyan} />
+          <MetricCard label="Tickets sold" value={events?.summary?.totalTicketsSold ?? 0} icon={TicketIcon} accent={tickahub.cyan} />
         </Grid>
         <Grid size={{ xs: 6, md: 3 }}>
-          <MetricCard label="Completed" value={`${events?.summary?.completionRate ?? 0}%`} hint={`${events?.summary?.completedEvents ?? 0} events done`} icon={TrendingIcon} accent={tickahub.gold} />
+          <MetricCard label="Completed" value={events?.summary?.completedEvents ?? 0} icon={TrendingIcon} accent={tickahub.gold} />
         </Grid>
       </Grid>
 
-      <Panel title="Event status" subtitle="All your events by approval state">
+      <Panel title="Event status">
         <ResponsiveContainer width="100%" height={280}>
           <BarChart data={statusChartData} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
             <CartesianGrid stroke={tickahub.borderSubtle} vertical={false} />
@@ -395,9 +357,9 @@ export default function Analytics() {
         </ResponsiveContainer>
       </Panel>
 
-      <Panel title="Your categories" subtitle="Events grouped by category in this period">
+      <Panel title="Your categories">
         {categoryChartData.length === 0 ? (
-          <Typography sx={{ color: tickahub.textMuted }}>No categorized events in this period</Typography>
+          <Typography sx={{ color: tickahub.textMuted }}>—</Typography>
         ) : (
           <Box sx={{ width: "100%", maxHeight: 480, overflowY: "auto" }}>
             <ResponsiveContainer width="100%" height={categoryChartHeight}>
@@ -432,9 +394,9 @@ export default function Analytics() {
         </Grid>
       </Grid>
 
-      <Panel title="Earnings trend" subtitle={`Your payout share by ${revenue?.period || "month"}`}>
+      <Panel title="Earnings trend">
         {revenueChartData.length === 0 ? (
-          <Typography sx={{ color: tickahub.textMuted }}>No paid sales in this period</Typography>
+          <Typography sx={{ color: tickahub.textMuted }}>—</Typography>
         ) : (
           <ResponsiveContainer width="100%" height={300}>
             <AreaChart data={revenueChartData}>
@@ -456,9 +418,9 @@ export default function Analytics() {
         )}
       </Panel>
 
-      <Panel title="Top events by earnings" subtitle="Your best performing events">
+      <Panel title="Top events">
         {topEventsChartData.length === 0 ? (
-          <Typography sx={{ color: tickahub.textMuted }}>No paid events yet</Typography>
+          <Typography sx={{ color: tickahub.textMuted }}>—</Typography>
         ) : (
           <ResponsiveContainer width="100%" height={Math.max(topEventsChartData.length * 44, 220)}>
             <BarChart data={topEventsChartData} layout="vertical" margin={{ left: 8, right: 16 }}>
@@ -503,29 +465,17 @@ export default function Analytics() {
               InputLabelProps={{ shrink: true }}
               sx={{ width: { xs: 130, sm: 150 }, "& .MuiOutlinedInput-root": { bgcolor: tickahub.navy, borderRadius: 2, "& fieldset": { borderColor: tickahub.borderSubtle }, "& input": { color: "#fff", fontSize: "0.85rem" } }, "& .MuiInputLabel-root": { color: tickahub.textMuted } }}
             />
-            <IconButton onClick={fetchAnalyticsData} disabled={loading} aria-label="Refresh" sx={{ color: tickahub.cyan, border: `1px solid ${tickahub.borderSubtle}`, borderRadius: 2, bgcolor: alpha(tickahub.cyan, 0.08) }}>
-              <RefreshIcon fontSize="small" />
-            </IconButton>
           </Stack>
         }
       />
 
-      <Paper elevation={0} sx={{ bgcolor: tickahub.surface, border: `1px solid ${tickahub.borderSubtle}`, borderRadius: 3, overflow: "hidden" }}>
+      <Paper elevation={0} sx={{ bgcolor: tickahub.surface, border: `1px solid ${tickahub.borderSubtle}`, borderRadius: 0, overflow: "hidden" }}>
         <Box sx={{ px: { xs: 1.5, md: 2 }, pt: 1.5, borderBottom: `1px solid ${tickahub.borderSubtle}` }}>
-          <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1}>
-            <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} sx={tabsSx}>
-              <Tab label="Overview" />
-              <Tab label="Events" />
-              <Tab label="Revenue" />
-            </Tabs>
-            <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ pb: { xs: 1, md: 0 } }}>
-              {datePresets.map((preset) => (
-                <Button key={preset.label} size="small" variant="outlined" onClick={() => setDateRange(preset.getRange())} sx={{ ...secondaryButtonSx, fontSize: "0.75rem", py: 0.35 }}>
-                  {preset.label}
-                </Button>
-              ))}
-            </Stack>
-          </Stack>
+          <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} sx={tabsSx}>
+            <Tab label="Overview" />
+            <Tab label="Events" />
+            <Tab label="Revenue" />
+          </Tabs>
         </Box>
 
         <Box sx={{ p: { xs: 1.5, md: 2.5 }, minHeight: 320 }}>
