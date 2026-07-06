@@ -18,22 +18,10 @@ import "leaflet/dist/leaflet.css";
 
 const DEFAULT_CENTER = { lat: -1.2921, lng: 36.8219 };
 const NOMINATIM = "/nominatim";
-const LOG_PREFIX = "[VenueMapPicker]";
-
-const log = (...args) => console.log(LOG_PREFIX, ...args);
-const logWarn = (...args) => console.warn(LOG_PREFIX, ...args);
-const logError = (...args) => console.error(LOG_PREFIX, ...args);
 
 async function readNominatimResponse(res, context) {
   const contentType = res.headers.get("content-type") || "";
   const bodyText = await res.text();
-
-  log(`${context} response`, {
-    status: res.status,
-    ok: res.ok,
-    contentType,
-    bodyPreview: bodyText.slice(0, 180),
-  });
 
   if (!res.ok) {
     throw new Error(`${context} failed (${res.status})`);
@@ -47,7 +35,7 @@ async function readNominatimResponse(res, context) {
 
   try {
     return JSON.parse(bodyText);
-  } catch (error) {
+  } catch {
     throw new Error(`${context} returned invalid JSON`);
   }
 }
@@ -55,17 +43,13 @@ async function readNominatimResponse(res, context) {
 async function nominatimSearch(query) {
   if (!query?.trim()) return [];
   const url = `${NOMINATIM}/search?format=json&q=${encodeURIComponent(query.trim())}&limit=6&addressdetails=1`;
-  log("search request", { query: query.trim(), url });
   const res = await fetch(url, { headers: { Accept: "application/json" } });
   const data = await readNominatimResponse(res, "search");
-  const results = Array.isArray(data) ? data : [];
-  log("search results", { count: results.length });
-  return results;
+  return Array.isArray(data) ? data : [];
 }
 
 async function nominatimReverse(lat, lng) {
   const url = `${NOMINATIM}/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`;
-  log("reverse request", { lat, lng, url });
   const res = await fetch(url, { headers: { Accept: "application/json" } });
   return readNominatimResponse(res, "reverse");
 }
@@ -150,7 +134,6 @@ export default function VenueMapPicker({
 
   const handleVenueInputChange = useCallback(
     (value) => {
-      log("input change", { value });
       setSearchError("");
       setSearch(value);
       if (!value.trim()) {
@@ -207,7 +190,6 @@ export default function VenueMapPicker({
 
   const runSearch = useDebouncedCallback(async (query) => {
     if (!query.trim()) {
-      log("search skipped (empty query)");
       setResults([]);
       setSearchError("");
       return;
@@ -215,15 +197,10 @@ export default function VenueMapPicker({
     try {
       setSearching(true);
       setSearchError("");
-      log("search start", { query });
       const data = await nominatimSearch(query);
       setResults(Array.isArray(data) ? data : []);
-      if (!data?.length) {
-        logWarn("search returned no matches", { query });
-      }
     } catch (error) {
       const message = error?.message || "Location search failed";
-      logError("search failed", message, error);
       setResults([]);
       setSearchError(message);
     } finally {
@@ -232,7 +209,6 @@ export default function VenueMapPicker({
   }, 400);
 
   useEffect(() => {
-    log("search effect", { search });
     runSearch(search);
   }, [search, runSearch]);
 
