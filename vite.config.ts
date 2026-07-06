@@ -16,6 +16,7 @@ export default defineConfig({
       workbox: {
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB limit
         cleanupOutdatedCaches: true,
+        navigateFallbackDenylist: [/^\/api/, /^\/uploads/, /^\/nominatim/],
       },
       includeAssets: ["favicon.ico", "apple-touch-icon.png", "masked-icon.svg"],
       manifest: {
@@ -64,6 +65,27 @@ export default defineConfig({
     hmr: {
       overlay: false,
     },
+    proxy: {
+      "/api": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+        secure: false,
+      },
+      "/uploads": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+        secure: false,
+      },
+      "/nominatim": {
+        target: "https://nominatim.openstreetmap.org",
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/nominatim/, ""),
+      },
+    },
+  },
+  preview: {
+    port: 3000,
     proxy: {
       "/api": {
         target: "http://localhost:4000",

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Box,
   TextField,
@@ -18,6 +18,57 @@ import "leaflet/dist/leaflet.css";
 
 const DEFAULT_CENTER = { lat: -1.2921, lng: 36.8219 };
 const NOMINATIM = "/nominatim";
+const LOG_PREFIX = "[VenueMapPicker]";
+
+const log = (...args) => console.log(LOG_PREFIX, ...args);
+const logWarn = (...args) => console.warn(LOG_PREFIX, ...args);
+const logError = (...args) => console.error(LOG_PREFIX, ...args);
+
+async function readNominatimResponse(res, context) {
+  const contentType = res.headers.get("content-type") || "";
+  const bodyText = await res.text();
+
+  log(`${context} response`, {
+    status: res.status,
+    ok: res.ok,
+    contentType,
+    bodyPreview: bodyText.slice(0, 180),
+  });
+
+  if (!res.ok) {
+    throw new Error(`${context} failed (${res.status})`);
+  }
+
+  if (!contentType.includes("application/json")) {
+    throw new Error(
+      `${context} returned non-JSON (${contentType || "unknown"}). Is /nominatim proxied?`
+    );
+  }
+
+  try {
+    return JSON.parse(bodyText);
+  } catch (error) {
+    throw new Error(`${context} returned invalid JSON`);
+  }
+}
+
+async function nominatimSearch(query) {
+  if (!query?.trim()) return [];
+  const url = `${NOMINATIM}/search?format=json&q=${encodeURIComponent(query.trim())}&limit=6&addressdetails=1`;
+  log("search request", { query: query.trim(), url });
+  const res = await fetch(url, { headers: { Accept: "application/json" } });
+  const data = await readNominatimResponse(res, "search");
+  const results = Array.isArray(data) ? data : [];
+  log("search results", { count: results.length });
+  return results;
+}
+
+async function nominatimReverse(lat, lng) {
+  const url = `${NOMINATIM}/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`;
+  log("reverse request", { lat, lng, url });
+  const res = await fetch(url, { headers: { Accept: "application/json" } });
+  return readNominatimResponse(res, "reverse");
+}
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -33,21 +84,6 @@ const toCoord = (value) => {
 };
 
 const formatCoord = (n) => (n == null ? "" : Number(n).toFixed(6));
-
-async function nominatimSearch(query) {
-  if (!query?.trim()) return [];
-  const url = `${NOMINATIM}/search?format=json&q=${encodeURIComponent(query.trim())}&limit=6&addressdetails=1`;
-  const res = await fetch(url, { headers: { Accept: "application/json" } });
-  if (!res.ok) throw new Error("Search failed");
-  return res.json();
-}
-
-async function nominatimReverse(lat, lng) {
-  const url = `${NOMINATIM}/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`;
-  const res = await fetch(url, { headers: { Accept: "application/json" } });
-  if (!res.ok) throw new Error("Reverse geocode failed");
-  return res.json();
-}
 
 function formatPlaceName(data) {
   if (!data) return "";
@@ -84,6 +120,8 @@ export default function VenueMapPicker({
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [geocoding, setGeocoding] = useState(false);
+  const [searchError, setSearchError] = useState("");
+  const inputFocusedRef = useRef(false);
 
   const lat = toCoord(latitude);
   const lng = toCoord(longitude);
@@ -94,8 +132,11 @@ export default function VenueMapPicker({
     [markerPos?.lat, markerPos?.lng]
   );
 
+  // Sync external venue updates (e.g. edit form load) without clobbering active typing.
   useEffect(() => {
-    setSearch(venue || "");
+    if (inputFocusedRef.current) return;
+    const next = venue || "";
+    setSearch((current) => (current === next ? current : next));
   }, [venue]);
 
   const resetLocation = useCallback(() => {
@@ -109,6 +150,8 @@ export default function VenueMapPicker({
 
   const handleVenueInputChange = useCallback(
     (value) => {
+      log("input change", { value });
+      setSearchError("");
       setSearch(value);
       if (!value.trim()) {
         resetLocation();
@@ -164,21 +207,32 @@ export default function VenueMapPicker({
 
   const runSearch = useDebouncedCallback(async (query) => {
     if (!query.trim()) {
+      log("search skipped (empty query)");
       setResults([]);
+      setSearchError("");
       return;
     }
     try {
       setSearching(true);
+      setSearchError("");
+      log("search start", { query });
       const data = await nominatimSearch(query);
       setResults(Array.isArray(data) ? data : []);
-    } catch {
+      if (!data?.length) {
+        logWarn("search returned no matches", { query });
+      }
+    } catch (error) {
+      const message = error?.message || "Location search failed";
+      logError("search failed", message, error);
       setResults([]);
+      setSearchError(message);
     } finally {
       setSearching(false);
     }
   }, 400);
 
   useEffect(() => {
+    log("search effect", { search });
     runSearch(search);
   }, [search, runSearch]);
 
@@ -204,9 +258,20 @@ export default function VenueMapPicker({
         required={required}
         value={search}
         onChange={(e) => handleVenueInputChange(e.target.value)}
+        onFocus={() => {
+          inputFocusedRef.current = true;
+        }}
+        onBlur={() => {
+          inputFocusedRef.current = false;
+        }}
         placeholder="Search address, venue, or city..."
-        helperText="Search OpenStreetMap, pick a result, or drag the marker on the map"
+        helperText={
+          searchError ||
+          "Search OpenStreetMap, pick a result, or drag the marker on the map"
+        }
+        error={Boolean(searchError)}
         sx={fieldSx}
+        inputProps={{ "data-venue-search": true }}
         InputProps={{
           endAdornment: searching || geocoding ? <CircularProgress size={16} sx={{ color: tickahub.cyan }} /> : null,
         }}
