@@ -22,6 +22,7 @@ import {
   getUserRole,
   getProfileImageUrl,
 } from "../../utils/userDisplay";
+import { formatGenresDisplay } from "../../utils/artistGenres";
 
 const DetailRow = ({ label, children }) => (
   <Box
@@ -121,7 +122,7 @@ export default function UserAccount({ open, onClose, currentUser }) {
           <DetailRow label="full_name">{textValue(currentUser?.full_name || currentUser?.contact_person)}</DetailRow>
           <DetailRow label="email">{textValue(currentUser?.email)}</DetailRow>
           <DetailRow label="phone">{textValue(getPhone(currentUser))}</DetailRow>
-          {isArtist && <DetailRow label="genre">{textValue(currentUser?.genre)}</DetailRow>}
+          {isArtist && <DetailRow label="genres">{textValue(formatGenresDisplay(currentUser?.genre))}</DetailRow>}
           <DetailRow label="role">
             <Chip
               label={getRoleLabel()}

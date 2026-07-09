@@ -556,7 +556,7 @@ export default function LoginPage() {
                     <TextField inputRef={rfArtistEmail} type="email" label="Email" fullWidth size="small" autoComplete="email" InputProps={{ startAdornment: <InputAdornment position="start"><Email sx={{ color: tickahub.textMuted, fontSize: 18 }} /></InputAdornment> }} sx={compactFieldSx} />
                     <TextField inputRef={rfArtistPhone} label="Phone (optional)" fullWidth size="small" autoComplete="tel" sx={compactFieldSx} />
                     <Box sx={{ gridColumn: "1 / -1" }}>
-                      <TextField inputRef={rfGenre} label="Genre (optional)" fullWidth size="small" sx={compactFieldSx} />
+                      <TextField inputRef={rfGenre} label="Genres (comma-separated)" fullWidth size="small" placeholder="Hip Hop, Afro-pop" sx={compactFieldSx} />
                     </Box>
                     <TextField
                       inputRef={rfArtistPassword}

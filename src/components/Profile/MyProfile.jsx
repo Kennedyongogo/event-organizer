@@ -11,6 +11,7 @@ import {
   Chip,
   Avatar,
   IconButton,
+  Divider,
 } from "@mui/material";
 import {
   Person as PersonIcon,
@@ -25,10 +26,8 @@ import {
   Phone as PhoneIcon,
   LocationOn as LocationIcon,
   CreditCard as CreditCardIcon,
-  Description as BioIcon,
   PhotoCamera as PhotoCameraIcon,
   DeleteOutline as DeletePhotoIcon,
-  Share as ShareIcon,
 } from "@mui/icons-material";
 import Swal from "sweetalert2";
 import { tickahub, goldGradient, backgroundGradient, cyanGradient } from "../../tickahubTheme";
@@ -40,6 +39,9 @@ import {
   getProfileImagePaths,
   notifyUserUpdated,
 } from "../../utils/userDisplay";
+import { formatGenresDisplay, parseArtistGenres } from "../../utils/artistGenres";
+import ArtistGenreField from "./ArtistGenreField";
+import { SectionCard, SectionLabel } from "../shared/tickahubPageStyles";
 
 const swalDark = {
   confirmButtonColor: tickahub.gold,
@@ -61,24 +63,6 @@ const fieldSx = {
   "& .MuiFormHelperText-root": { color: tickahub.textMuted, mt: 0.5 },
 };
 
-const sectionTitleSx = {
-  color: "#fff",
-  fontWeight: 800,
-  fontSize: "1rem",
-};
-
-const halfCardSx = {
-  flex: { xs: "none", md: 1 },
-  minWidth: 0,
-  display: "flex",
-  flexDirection: "column",
-  borderRadius: 3,
-  overflow: "visible",
-  bgcolor: tickahub.surface,
-  border: `1px solid ${tickahub.borderSubtle}`,
-  mb: { md: 0 },
-};
-
 const pageShellSx = {
   m: { xs: -2, md: -3 },
   background: backgroundGradient,
@@ -88,25 +72,6 @@ const pageShellSx = {
   px: 2,
   pb: 2,
   gap: 2,
-};
-
-const cardsRowSx = {
-  display: "flex",
-  flexDirection: { xs: "column", md: "row" },
-  alignItems: { md: "stretch" },
-  gap: 2,
-  mb: { md: 0 },
-};
-
-const cardBodySx = {
-  p: 2.5,
-};
-
-const cardHeaderSx = {
-  px: 2.5,
-  py: 1.75,
-  flexShrink: 0,
-  borderBottom: `1px solid ${tickahub.borderSubtle}`,
 };
 
 const SOCIAL_FIELDS = [
@@ -131,7 +96,7 @@ const emptyProfile = {
   organizer_status: "",
   stage_name: "",
   bio: "",
-  genre: "",
+  genre: [],
   profile_image: "",
   profile_images: [],
   facebook_url: "",
@@ -170,23 +135,6 @@ const formatDate = (value) => {
     return "—";
   }
 };
-
-const ProfileCard = ({ headerBg, icon: Icon, iconColor, title, subtitle, children }) => (
-  <Paper elevation={0} sx={halfCardSx}>
-    <Box sx={{ ...cardHeaderSx, background: headerBg }}>
-      <Stack direction="row" alignItems="center" spacing={1}>
-        <Icon sx={{ color: iconColor, fontSize: 20 }} />
-        <Typography sx={sectionTitleSx}>{title}</Typography>
-      </Stack>
-      {subtitle && (
-        <Typography sx={{ color: tickahub.textMuted, fontSize: "0.8rem", mt: 0.25 }}>
-          {subtitle}
-        </Typography>
-      )}
-    </Box>
-    <Box sx={cardBodySx}>{children}</Box>
-  </Paper>
-);
 
 const ViewField = ({ label, value, multiline = false }) => (
   <Box>
@@ -279,7 +227,7 @@ export default function MyProfile() {
       organizer_status: u.organizer_status || "",
       stage_name: u.stage_name || "",
       bio: u.bio || "",
-      genre: u.genre || "",
+      genre: parseArtistGenres(u.genre),
       profile_image: u.profile_image || "",
       profile_images: getProfileImagePaths(u),
       facebook_url: u.facebook_url || "",
@@ -347,7 +295,7 @@ export default function MyProfile() {
       formData.append("full_name", profile.full_name.trim());
       formData.append("phone", profile.phone.trim());
       formData.append("stage_name", profile.stage_name.trim());
-      formData.append("genre", profile.genre.trim());
+      formData.append("genre", JSON.stringify(profile.genre));
       formData.append("bio", profile.bio.trim());
       SOCIAL_FIELDS.forEach(({ key }) => {
         formData.append(key, profile[key].trim());
@@ -569,7 +517,7 @@ export default function MyProfile() {
             full_name: profile.full_name.trim(),
             phone: profile.phone.trim(),
             stage_name: profile.stage_name.trim(),
-            genre: profile.genre.trim(),
+            genre: profile.genre,
             bio: profile.bio.trim(),
             ...Object.fromEntries(
               SOCIAL_FIELDS.map(({ key }) => [key, profile[key].trim()])
@@ -982,16 +930,22 @@ export default function MyProfile() {
         </Stack>
       </Paper>
 
-      <Box sx={cardsRowSx}>
-        {isArtist ? (
-          <>
-            <ProfileCard
-              headerBg={`linear-gradient(135deg, ${tickahub.gold}22, transparent)`}
-              icon={MusicIcon}
-              iconColor={tickahub.gold}
-              title="Artist profile"
-              subtitle="Stage identity and contact details"
-            >
+      <SectionCard
+        sx={{ width: "100%", flex: "none" }}
+        headerBg={
+          isArtist
+            ? `linear-gradient(135deg, ${tickahub.gold}22, transparent)`
+            : `linear-gradient(135deg, ${tickahub.cyan}14, transparent)`
+        }
+        icon={isArtist ? MusicIcon : BusinessIcon}
+        iconColor={isArtist ? tickahub.gold : tickahub.cyan}
+        title={isArtist ? "Artist profile" : "Organizer profile"}
+        subtitle={isArtist ? "Stage identity, bio, and social links" : "Organization, business, and payout details"}
+      >
+        <Stack spacing={2.5} sx={{ width: "100%" }}>
+          {isArtist ? (
+            <>
+              <SectionLabel>Identity</SectionLabel>
               <Stack spacing={1.5}>
                 {editMode ? (
                   <>
@@ -1034,20 +988,9 @@ export default function MyProfile() {
                       }}
                       sx={fieldSx}
                     />
-                    <TextField
-                      label="genre"
-                      size="small"
-                      fullWidth
+                    <ArtistGenreField
                       value={profile.genre}
-                      onChange={(e) => setField("genre", e.target.value)}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <MusicIcon sx={{ color: tickahub.textMuted, fontSize: 18 }} />
-                          </InputAdornment>
-                        ),
-                      }}
-                      sx={fieldSx}
+                      onChange={(genres) => setField("genre", genres)}
                     />
                   </>
                 ) : (
@@ -1056,20 +999,14 @@ export default function MyProfile() {
                     <ViewField label="full_name" value={profile.full_name} />
                     <ViewField label="email" value={profile.email} />
                     <ViewField label="phone" value={profile.phone} />
-                    <ViewField label="genre" value={profile.genre} />
+                    <ViewField label="genres" value={formatGenresDisplay(profile.genre)} />
                   </>
                 )}
                 <MetaChips roleLabel={roleLabel} isActive={profile.isActive} />
               </Stack>
-            </ProfileCard>
 
-            <ProfileCard
-              headerBg={`linear-gradient(135deg, ${tickahub.cyan}22, transparent)`}
-              icon={BioIcon}
-              iconColor={tickahub.cyan}
-              title="About"
-              subtitle="Tell fans about yourself"
-            >
+              <Divider sx={{ borderColor: tickahub.borderSubtle }} />
+              <SectionLabel accent={tickahub.gold}>About</SectionLabel>
               <Stack spacing={1.5}>
                 {editMode ? (
                   <TextField
@@ -1087,15 +1024,9 @@ export default function MyProfile() {
                   <ViewField label="bio" value={profile.bio} multiline />
                 )}
               </Stack>
-            </ProfileCard>
 
-            <ProfileCard
-              headerBg={`linear-gradient(135deg, ${tickahub.gold}18, transparent)`}
-              icon={ShareIcon}
-              iconColor={tickahub.gold}
-              title="Social media"
-              subtitle="Links fans can follow"
-            >
+              <Divider sx={{ borderColor: tickahub.borderSubtle }} />
+              <SectionLabel accent={tickahub.cyan}>Social media</SectionLabel>
               <Stack spacing={1.5}>
                 {editMode
                   ? SOCIAL_FIELDS.map(({ key, label, placeholder }) => (
@@ -1114,17 +1045,10 @@ export default function MyProfile() {
                       <ViewLinkField key={key} label={label} value={profile[key]} />
                     ))}
               </Stack>
-            </ProfileCard>
-          </>
-        ) : (
-          <>
-            <ProfileCard
-              headerBg={`linear-gradient(135deg, ${tickahub.gold}22, transparent)`}
-              icon={BusinessIcon}
-              iconColor={tickahub.gold}
-              title="Organization"
-              subtitle="Company and contact information"
-            >
+            </>
+          ) : (
+            <>
+              <SectionLabel>Organization</SectionLabel>
               <Stack spacing={1.5}>
                 {editMode ? (
                   <>
@@ -1221,15 +1145,9 @@ export default function MyProfile() {
                   organizerStatus={profile.organizer_status}
                 />
               </Stack>
-            </ProfileCard>
 
-            <ProfileCard
-              headerBg={`linear-gradient(135deg, ${tickahub.cyan}22, transparent)`}
-              icon={BankIcon}
-              iconColor={tickahub.cyan}
-              title="Business & payments"
-              subtitle="Tax, banking, and payout details"
-            >
+              <Divider sx={{ borderColor: tickahub.borderSubtle }} />
+              <SectionLabel accent={tickahub.gold}>Business & payments</SectionLabel>
               <Stack spacing={1.5}>
                 {editMode ? (
                   <>
@@ -1304,10 +1222,10 @@ export default function MyProfile() {
                   </>
                 )}
               </Stack>
-            </ProfileCard>
-          </>
-        )}
-      </Box>
+            </>
+          )}
+        </Stack>
+      </SectionCard>
     </Box>
   );
 }

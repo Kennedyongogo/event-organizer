@@ -11,6 +11,7 @@ import {
   CircularProgress,
   Chip,
   Avatar,
+  Divider,
 } from "@mui/material";
 import {
   Visibility,
@@ -23,6 +24,9 @@ import {
 import Swal from "sweetalert2";
 import { tickahub, goldGradient, backgroundGradient } from "../tickahubTheme";
 import { getDisplayName, getInitials, getUserRole } from "../utils/userDisplay";
+import { parseArtistGenres } from "../utils/artistGenres";
+import ArtistGenreField from "../components/Profile/ArtistGenreField";
+import { SectionCard, SectionLabel, pageShellSx } from "../components/shared/tickahubPageStyles";
 
 const swalDark = {
   confirmButtonColor: tickahub.gold,
@@ -42,51 +46,6 @@ const fieldSx = {
   "& .MuiOutlinedInput-input": { color: "#fff" },
   "& .Mui-disabled": { WebkitTextFillColor: `${tickahub.textMuted} !important` },
   "& .MuiFormHelperText-root": { color: tickahub.textMuted, mt: 0.5 },
-};
-
-const sectionTitleSx = {
-  color: "#fff",
-  fontWeight: 800,
-  fontSize: "1rem",
-};
-
-const halfCardSx = {
-  flex: { xs: "none", md: 1 },
-  minWidth: 0,
-  display: "flex",
-  flexDirection: "column",
-  borderRadius: 3,
-  overflow: "visible",
-  bgcolor: tickahub.surface,
-  border: `1px solid ${tickahub.borderSubtle}`,
-};
-
-const pageShellSx = {
-  m: { xs: -2, md: -3 },
-  background: backgroundGradient,
-  display: "flex",
-  flexDirection: "column",
-  pt: 2,
-  px: 2,
-  pb: 2,
-  gap: 2,
-};
-
-const cardsRowSx = {
-  display: "flex",
-  flexDirection: { xs: "column", md: "row" },
-  gap: 2,
-};
-
-const cardBodySx = {
-  p: 2.5,
-};
-
-const cardHeaderSx = {
-  px: 2.5,
-  py: 1.75,
-  flexShrink: 0,
-  borderBottom: `1px solid ${tickahub.borderSubtle}`,
 };
 
 const PasswordToggle = ({ show, onToggle }) => (
@@ -114,7 +73,7 @@ export default function Settings({ user }) {
     role: "",
     organization_name: "",
     stage_name: "",
-    genre: "",
+    genre: [],
     organizer_status: "",
   });
   const [loadingProfile, setLoadingProfile] = useState(true);
@@ -140,7 +99,7 @@ export default function Settings({ user }) {
       role: u.role || (isArtist ? "artist" : "event_organizer"),
       organization_name: u.organization_name || "",
       stage_name: u.stage_name || "",
-      genre: u.genre || "",
+      genre: parseArtistGenres(u.genre),
       organizer_status: u.organizer_status || "",
     });
   };
@@ -197,7 +156,7 @@ export default function Settings({ user }) {
             full_name: profile.full_name.trim(),
             phone: profile.phone.trim(),
             stage_name: profile.stage_name.trim(),
-            genre: profile.genre.trim(),
+            genre: profile.genre,
           }
         : {
             full_name: profile.full_name.trim(),
@@ -350,213 +309,196 @@ export default function Settings({ user }) {
         </Stack>
       </Paper>
 
-      <Box sx={cardsRowSx}>
-        <Paper elevation={0} sx={halfCardSx}>
-          <Box sx={{ ...cardHeaderSx, background: `linear-gradient(135deg, ${tickahub.gold}22, transparent)` }}>
-            <Stack direction="row" alignItems="center" spacing={1}>
-              <PersonIcon sx={{ color: tickahub.gold, fontSize: 20 }} />
-              <Typography sx={sectionTitleSx}>Profile</Typography>
-            </Stack>
-            <Typography sx={{ color: tickahub.textMuted, fontSize: "0.8rem", mt: 0.25 }}>
-              Update your personal details
-            </Typography>
-          </Box>
-          <Box sx={cardBodySx}>
-            {loadingProfile ? (
-              <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", py: 4 }}>
-                <CircularProgress sx={{ color: tickahub.cyan }} size={26} />
-              </Box>
-            ) : (
-              <Stack spacing={1.5}>
-                {isArtist ? (
-                  <TextField
-                    label="stage_name"
-                    size="small"
-                    fullWidth
-                    value={profile.stage_name}
-                    onChange={(e) => setProfile({ ...profile, stage_name: e.target.value })}
-                    sx={fieldSx}
-                  />
-                ) : (
-                  <TextField
-                    label="organization_name"
-                    size="small"
-                    fullWidth
-                    value={profile.organization_name}
-                    onChange={(e) => setProfile({ ...profile, organization_name: e.target.value })}
-                    sx={fieldSx}
-                  />
-                )}
-                <TextField
-                  label="full_name"
-                  size="small"
-                  fullWidth
-                  value={profile.full_name}
-                  onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <PersonIcon sx={{ color: tickahub.textMuted, fontSize: 18 }} />
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={fieldSx}
-                />
-                <TextField label="email" size="small" fullWidth value={profile.email} disabled sx={fieldSx} />
-                <TextField
-                  label="phone"
-                  size="small"
-                  fullWidth
-                  value={profile.phone}
-                  onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                  sx={fieldSx}
-                />
-                {isArtist && (
-                  <TextField
-                    label="genre"
-                    size="small"
-                    fullWidth
-                    value={profile.genre}
-                    onChange={(e) => setProfile({ ...profile, genre: e.target.value })}
-                    sx={fieldSx}
-                  />
-                )}
-                <Box>
-                  <Typography variant="caption" sx={{ color: tickahub.textMuted, fontFamily: "monospace" }}>
-                    role
-                  </Typography>
-                  <Box mt={0.5} sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-                    <Chip
-                      label={roleLabel}
-                      size="small"
-                      sx={{ bgcolor: `${tickahub.gold}22`, color: tickahub.gold, fontWeight: 700, height: 24 }}
-                    />
-                    {!isArtist && profile.organizer_status && (
-                      <Chip
-                        label={profile.organizer_status}
-                        size="small"
-                        sx={{ bgcolor: `${tickahub.cyan}22`, color: tickahub.cyan, fontWeight: 700, height: 24 }}
-                      />
-                    )}
-                  </Box>
-                </Box>
-                <Box sx={{ flexGrow: { xs: 0, md: 1 } }} />
-                <Button
-                  variant="contained"
-                  size="small"
-                  onClick={handleProfileSave}
-                  disabled={savingProfile}
-                  startIcon={savingProfile ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
-                  sx={{
-                    alignSelf: "flex-start",
-                    background: goldGradient,
-                    color: tickahub.navy,
-                    fontWeight: 700,
-                    textTransform: "none",
-                    px: 2.5,
-                  }}
-                >
-                  {savingProfile ? "Saving..." : "Save profile"}
-                </Button>
-              </Stack>
-            )}
-          </Box>
-        </Paper>
-
-        <Paper elevation={0} sx={halfCardSx}>
-          <Box sx={{ ...cardHeaderSx, background: `linear-gradient(135deg, ${tickahub.cyan}22, transparent)` }}>
-            <Stack direction="row" alignItems="center" spacing={1}>
-              <LockIcon sx={{ color: tickahub.cyan, fontSize: 20 }} />
-              <Typography sx={sectionTitleSx}>Security</Typography>
-            </Stack>
-            <Typography sx={{ color: tickahub.textMuted, fontSize: "0.8rem", mt: 0.25 }}>
-              Change your password
-            </Typography>
-          </Box>
-          <Box sx={cardBodySx}>
-            <Box component="form" onSubmit={handlePasswordSave}>
-              <Stack spacing={1.5}>
-                <TextField
-                  label="Current password"
-                  size="small"
-                  type={showPasswords.old ? "text" : "password"}
-                  fullWidth
-                  value={oldPassword}
-                  onChange={(e) => setOldPassword(e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <LockIcon sx={{ color: tickahub.textMuted, fontSize: 18 }} />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <PasswordToggle show={showPasswords.old} onToggle={() => setShowPasswords((p) => ({ ...p, old: !p.old }))} />
-                    ),
-                  }}
-                  sx={fieldSx}
-                />
-                <TextField
-                  label="New password"
-                  size="small"
-                  type={showPasswords.new ? "text" : "password"}
-                  fullWidth
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  helperText="Min. 6 characters"
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <LockIcon sx={{ color: tickahub.textMuted, fontSize: 18 }} />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <PasswordToggle show={showPasswords.new} onToggle={() => setShowPasswords((p) => ({ ...p, new: !p.new }))} />
-                    ),
-                  }}
-                  sx={fieldSx}
-                />
-                <TextField
-                  label="Confirm password"
-                  size="small"
-                  type={showPasswords.confirm ? "text" : "password"}
-                  fullWidth
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <LockIcon sx={{ color: tickahub.textMuted, fontSize: 18 }} />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <PasswordToggle show={showPasswords.confirm} onToggle={() => setShowPasswords((p) => ({ ...p, confirm: !p.confirm }))} />
-                    ),
-                  }}
-                  sx={fieldSx}
-                />
-                <Box sx={{ flexGrow: { xs: 0, md: 1 } }} />
-                <Button
-                  type="submit"
-                  size="small"
-                  variant="contained"
-                  disabled={savingPassword}
-                  startIcon={savingPassword ? <CircularProgress size={16} color="inherit" /> : <LockIcon />}
-                  sx={{
-                    alignSelf: "flex-start",
-                    background: `linear-gradient(135deg, ${tickahub.cyan}, ${tickahub.cyanDark})`,
-                    color: tickahub.navy,
-                    fontWeight: 700,
-                    textTransform: "none",
-                    px: 2.5,
-                  }}
-                >
-                  {savingPassword ? "Updating..." : "Update password"}
-                </Button>
-              </Stack>
+      <SectionCard
+        sx={{ width: "100%", flex: "none" }}
+        headerBg={`linear-gradient(135deg, ${tickahub.gold}22, transparent)`}
+        icon={SettingsIcon}
+        iconColor={tickahub.gold}
+        title="Account settings"
+        subtitle="Profile details and security"
+      >
+        <Stack spacing={2.5} sx={{ width: "100%" }}>
+          <SectionLabel>Profile</SectionLabel>
+          {loadingProfile ? (
+            <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", py: 4 }}>
+              <CircularProgress sx={{ color: tickahub.cyan }} size={26} />
             </Box>
+          ) : (
+            <Stack spacing={1.5}>
+              {isArtist ? (
+                <TextField
+                  label="stage_name"
+                  size="small"
+                  fullWidth
+                  value={profile.stage_name}
+                  onChange={(e) => setProfile({ ...profile, stage_name: e.target.value })}
+                  sx={fieldSx}
+                />
+              ) : (
+                <TextField
+                  label="organization_name"
+                  size="small"
+                  fullWidth
+                  value={profile.organization_name}
+                  onChange={(e) => setProfile({ ...profile, organization_name: e.target.value })}
+                  sx={fieldSx}
+                />
+              )}
+              <TextField
+                label="full_name"
+                size="small"
+                fullWidth
+                value={profile.full_name}
+                onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <PersonIcon sx={{ color: tickahub.textMuted, fontSize: 18 }} />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={fieldSx}
+              />
+              <TextField label="email" size="small" fullWidth value={profile.email} disabled sx={fieldSx} />
+              <TextField
+                label="phone"
+                size="small"
+                fullWidth
+                value={profile.phone}
+                onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                sx={fieldSx}
+              />
+              {isArtist && (
+                <ArtistGenreField
+                  value={profile.genre}
+                  onChange={(genres) => setProfile({ ...profile, genre: genres })}
+                />
+              )}
+              <Box>
+                <Typography variant="caption" sx={{ color: tickahub.textMuted, fontFamily: "monospace" }}>
+                  role
+                </Typography>
+                <Box mt={0.5} sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                  <Chip
+                    label={roleLabel}
+                    size="small"
+                    sx={{ bgcolor: `${tickahub.gold}22`, color: tickahub.gold, fontWeight: 700, height: 24 }}
+                  />
+                  {!isArtist && profile.organizer_status && (
+                    <Chip
+                      label={profile.organizer_status}
+                      size="small"
+                      sx={{ bgcolor: `${tickahub.cyan}22`, color: tickahub.cyan, fontWeight: 700, height: 24 }}
+                    />
+                  )}
+                </Box>
+              </Box>
+              <Button
+                variant="contained"
+                size="small"
+                onClick={handleProfileSave}
+                disabled={savingProfile}
+                startIcon={savingProfile ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
+                sx={{
+                  alignSelf: "flex-start",
+                  background: goldGradient,
+                  color: tickahub.navy,
+                  fontWeight: 700,
+                  textTransform: "none",
+                  px: 2.5,
+                }}
+              >
+                {savingProfile ? "Saving..." : "Save profile"}
+              </Button>
+            </Stack>
+          )}
+
+          <Divider sx={{ borderColor: tickahub.borderSubtle }} />
+          <SectionLabel accent={tickahub.cyan}>Security</SectionLabel>
+          <Box component="form" onSubmit={handlePasswordSave}>
+            <Stack spacing={1.5}>
+              <TextField
+                label="Current password"
+                size="small"
+                type={showPasswords.old ? "text" : "password"}
+                fullWidth
+                value={oldPassword}
+                onChange={(e) => setOldPassword(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <LockIcon sx={{ color: tickahub.textMuted, fontSize: 18 }} />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <PasswordToggle show={showPasswords.old} onToggle={() => setShowPasswords((p) => ({ ...p, old: !p.old }))} />
+                  ),
+                }}
+                sx={fieldSx}
+              />
+              <TextField
+                label="New password"
+                size="small"
+                type={showPasswords.new ? "text" : "password"}
+                fullWidth
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                helperText="Min. 6 characters"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <LockIcon sx={{ color: tickahub.textMuted, fontSize: 18 }} />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <PasswordToggle show={showPasswords.new} onToggle={() => setShowPasswords((p) => ({ ...p, new: !p.new }))} />
+                  ),
+                }}
+                sx={fieldSx}
+              />
+              <TextField
+                label="Confirm password"
+                size="small"
+                type={showPasswords.confirm ? "text" : "password"}
+                fullWidth
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <LockIcon sx={{ color: tickahub.textMuted, fontSize: 18 }} />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <PasswordToggle
+                      show={showPasswords.confirm}
+                      onToggle={() => setShowPasswords((p) => ({ ...p, confirm: !p.confirm }))}
+                    />
+                  ),
+                }}
+                sx={fieldSx}
+              />
+              <Button
+                type="submit"
+                size="small"
+                variant="contained"
+                disabled={savingPassword}
+                startIcon={savingPassword ? <CircularProgress size={16} color="inherit" /> : <LockIcon />}
+                sx={{
+                  alignSelf: "flex-start",
+                  background: `linear-gradient(135deg, ${tickahub.cyan}, ${tickahub.cyanDark})`,
+                  color: tickahub.navy,
+                  fontWeight: 700,
+                  textTransform: "none",
+                  px: 2.5,
+                }}
+              >
+                {savingPassword ? "Updating..." : "Update password"}
+              </Button>
+            </Stack>
           </Box>
-        </Paper>
-      </Box>
+        </Stack>
+      </SectionCard>
     </Box>
   );
 }
