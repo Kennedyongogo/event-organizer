@@ -288,6 +288,21 @@ export default function Analytics() {
       </Grid>
 
       <Grid container spacing={2}>
+        <Grid size={{ xs: 6, md: 3 }}>
+          <MetricCard label="Ticket sales" value={formatKes(metrics?.sales?.ticketSales)} icon={TicketIcon} accent={tickahub.gold} />
+        </Grid>
+        <Grid size={{ xs: 6, md: 3 }}>
+          <MetricCard label="Merchandise sales" value={formatKes(metrics?.sales?.merchandiseSales)} icon={MoneyIcon} accent={tickahub.cyan} />
+        </Grid>
+        <Grid size={{ xs: 6, md: 3 }}>
+          <MetricCard label="Ticket fees" value={formatKes(metrics?.sales?.ticketCommission)} icon={TrendingIcon} accent={tickahub.cyanDark} />
+        </Grid>
+        <Grid size={{ xs: 6, md: 3 }}>
+          <MetricCard label="Merch fees" value={formatKes(metrics?.sales?.merchandiseCommission)} icon={MoneyIcon} accent={tickahub.gold} />
+        </Grid>
+      </Grid>
+
+      <Grid container spacing={2}>
         <Grid size={{ xs: 12, md: 6 }}>
           <Panel title="Recent events">
             {(overview?.recent?.events || []).length === 0 ? (
@@ -391,6 +406,21 @@ export default function Analytics() {
         </Grid>
         <Grid size={{ xs: 6, md: 3 }}>
           <MetricCard label="Transactions" value={revenue?.summary?.transactionCount ?? 0} icon={TicketIcon} accent={tickahub.gold} />
+        </Grid>
+      </Grid>
+
+      <Grid container spacing={2}>
+        <Grid size={{ xs: 6, md: 3 }}>
+          <MetricCard label="Ticket sales" value={formatKes(revenue?.summary?.ticketSales)} icon={TicketIcon} accent={tickahub.gold} />
+        </Grid>
+        <Grid size={{ xs: 6, md: 3 }}>
+          <MetricCard label="Merchandise sales" value={formatKes(revenue?.summary?.merchandiseSales)} icon={MoneyIcon} accent={tickahub.cyan} />
+        </Grid>
+        <Grid size={{ xs: 6, md: 3 }}>
+          <MetricCard label="Ticket fees" value={formatKes(revenue?.summary?.ticketCommission)} icon={TrendingIcon} accent={tickahub.cyanDark} />
+        </Grid>
+        <Grid size={{ xs: 6, md: 3 }}>
+          <MetricCard label="Merch fees" value={formatKes(revenue?.summary?.merchandiseCommission)} icon={MoneyIcon} accent={tickahub.gold} />
         </Grid>
       </Grid>
 
