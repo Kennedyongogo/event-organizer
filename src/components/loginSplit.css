@@ -159,6 +159,24 @@
   row-gap: 12px;
 }
 
+.split-auth-container .sign-up-form-shell {
+  width: 100%;
+  min-height: 372px;
+  display: flex;
+  flex-direction: column;
+}
+
+.split-auth-container .sign-up-form {
+  width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.split-auth-container .sign-up-form .register-grid {
+  flex: 1;
+}
+
 .split-auth-container.right-panel-active .form-inner .MuiTabs-root {
   min-height: 40px;
   margin-bottom: 18px;
@@ -343,6 +361,10 @@
 
   .split-auth-container .register-grid {
     grid-template-columns: 1fr;
+  }
+
+  .split-auth-container .sign-up-form-shell {
+    min-height: 0;
   }
 }
 

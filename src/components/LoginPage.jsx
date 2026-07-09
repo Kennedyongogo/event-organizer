@@ -505,81 +505,91 @@ export default function LoginPage() {
               {accountType === "organizer" ? "Submit for admin approval" : "Start sharing your schedule"}
             </Typography>
             {accountType === "organizer" ? (
-              <form onSubmit={registerOrganizer}>
-                <Box className="register-grid">
-                  <TextField inputRef={rfOrgName} label="Organization name" fullWidth size="small" autoComplete="organization" InputProps={{ startAdornment: <InputAdornment position="start"><Storefront sx={{ color: tickahub.textMuted, fontSize: 18 }} /></InputAdornment> }} sx={compactFieldSx} />
-                  <TextField inputRef={rfContactPerson} label="Contact person" fullWidth size="small" autoComplete="name" InputProps={{ startAdornment: <InputAdornment position="start"><Person sx={{ color: tickahub.textMuted, fontSize: 18 }} /></InputAdornment> }} sx={compactFieldSx} />
-                  <TextField inputRef={rfRegEmail} type="email" label="Email" fullWidth size="small" autoComplete="email" InputProps={{ startAdornment: <InputAdornment position="start"><Email sx={{ color: tickahub.textMuted, fontSize: 18 }} /></InputAdornment> }} sx={compactFieldSx} />
-                  <TextField inputRef={rfPhone} label="Phone" fullWidth size="small" autoComplete="tel" sx={compactFieldSx} />
-                  <Box sx={{ gridColumn: "1 / -1" }}>
-                    <TextField inputRef={rfAddress} label="Address (optional)" fullWidth size="small" sx={compactFieldSx} />
+              <Box className="sign-up-form-shell">
+                <form className="sign-up-form" onSubmit={registerOrganizer}>
+                  <Box className="register-grid">
+                    <TextField inputRef={rfOrgName} label="Organization name" fullWidth size="small" autoComplete="organization" InputProps={{ startAdornment: <InputAdornment position="start"><Storefront sx={{ color: tickahub.textMuted, fontSize: 18 }} /></InputAdornment> }} sx={compactFieldSx} />
+                    <TextField inputRef={rfContactPerson} label="Contact person" fullWidth size="small" autoComplete="name" InputProps={{ startAdornment: <InputAdornment position="start"><Person sx={{ color: tickahub.textMuted, fontSize: 18 }} /></InputAdornment> }} sx={compactFieldSx} />
+                    <TextField inputRef={rfRegEmail} type="email" label="Email" fullWidth size="small" autoComplete="email" InputProps={{ startAdornment: <InputAdornment position="start"><Email sx={{ color: tickahub.textMuted, fontSize: 18 }} /></InputAdornment> }} sx={compactFieldSx} />
+                    <TextField inputRef={rfPhone} label="Phone" fullWidth size="small" autoComplete="tel" sx={compactFieldSx} />
+                    <Box sx={{ gridColumn: "1 / -1" }}>
+                      <TextField inputRef={rfAddress} label="Address (optional)" fullWidth size="small" sx={compactFieldSx} />
+                    </Box>
+                    <TextField
+                      inputRef={rfRegPassword}
+                      type={showOrgRegPassword ? "text" : "password"}
+                      label="Password"
+                      fullWidth
+                      size="small"
+                      autoComplete="new-password"
+                      InputProps={{
+                        startAdornment: <InputAdornment position="start"><Lock sx={{ color: tickahub.textMuted, fontSize: 18 }} /></InputAdornment>,
+                        endAdornment: <PasswordToggle show={showOrgRegPassword} onToggle={() => setShowOrgRegPassword(!showOrgRegPassword)} />,
+                      }}
+                      sx={compactFieldSx}
+                    />
+                    <TextField
+                      inputRef={rfConfirmPassword}
+                      type={showOrgRegConfirm ? "text" : "password"}
+                      label="Confirm password"
+                      fullWidth
+                      size="small"
+                      autoComplete="new-password"
+                      InputProps={{
+                        startAdornment: <InputAdornment position="start"><Lock sx={{ color: tickahub.textMuted, fontSize: 18 }} /></InputAdornment>,
+                        endAdornment: <PasswordToggle show={showOrgRegConfirm} onToggle={() => setShowOrgRegConfirm(!showOrgRegConfirm)} />,
+                      }}
+                      sx={compactFieldSx}
+                    />
                   </Box>
-                  <TextField
-                    inputRef={rfRegPassword}
-                    type={showOrgRegPassword ? "text" : "password"}
-                    label="Password"
-                    fullWidth
-                    size="small"
-                    autoComplete="new-password"
-                    InputProps={{
-                      startAdornment: <InputAdornment position="start"><Lock sx={{ color: tickahub.textMuted, fontSize: 18 }} /></InputAdornment>,
-                      endAdornment: <PasswordToggle show={showOrgRegPassword} onToggle={() => setShowOrgRegPassword(!showOrgRegPassword)} />,
-                    }}
-                    sx={compactFieldSx}
-                  />
-                  <TextField
-                    inputRef={rfConfirmPassword}
-                    type={showOrgRegConfirm ? "text" : "password"}
-                    label="Confirm password"
-                    fullWidth
-                    size="small"
-                    autoComplete="new-password"
-                    InputProps={{
-                      startAdornment: <InputAdornment position="start"><Lock sx={{ color: tickahub.textMuted, fontSize: 18 }} /></InputAdornment>,
-                      endAdornment: <PasswordToggle show={showOrgRegConfirm} onToggle={() => setShowOrgRegConfirm(!showOrgRegConfirm)} />,
-                    }}
-                    sx={compactFieldSx}
-                  />
-                </Box>
-                <Button type="submit" fullWidth size="large" disabled={loading} sx={{ ...pillBtnSx, mt: 2.25, py: 1.4, background: goldGradient, color: tickahub.navy }}>
-                  {loading ? "Submitting..." : "Sign up"}
-                </Button>
-              </form>
+                  <Button type="submit" fullWidth size="large" disabled={loading} sx={{ ...pillBtnSx, mt: 2.25, py: 1.4, background: goldGradient, color: tickahub.navy }}>
+                    {loading ? "Submitting..." : "Sign up"}
+                  </Button>
+                </form>
+              </Box>
             ) : (
-              <form onSubmit={registerArtist}>
-                <TextField inputRef={rfStageName} label="Stage name" fullWidth margin="dense" autoComplete="nickname" InputProps={{ startAdornment: <InputAdornment position="start"><MicExternalOn sx={{ color: tickahub.textMuted, fontSize: 20 }} /></InputAdornment> }} sx={fieldSx} />
-                <TextField inputRef={rfArtistName} label="Full name" fullWidth margin="dense" autoComplete="name" InputProps={{ startAdornment: <InputAdornment position="start"><Person sx={{ color: tickahub.textMuted, fontSize: 20 }} /></InputAdornment> }} sx={fieldSx} />
-                <TextField inputRef={rfArtistEmail} type="email" label="Email" fullWidth margin="dense" autoComplete="email" InputProps={{ startAdornment: <InputAdornment position="start"><Email sx={{ color: tickahub.textMuted, fontSize: 20 }} /></InputAdornment> }} sx={fieldSx} />
-                <TextField
-                  inputRef={rfArtistPassword}
-                  type={showArtistRegPassword ? "text" : "password"}
-                  label="Password"
-                  fullWidth
-                  margin="dense"
-                  autoComplete="new-password"
-                  InputProps={{
-                    startAdornment: <InputAdornment position="start"><Lock sx={{ color: tickahub.textMuted, fontSize: 20 }} /></InputAdornment>,
-                    endAdornment: <PasswordToggle show={showArtistRegPassword} onToggle={() => setShowArtistRegPassword(!showArtistRegPassword)} />,
-                  }}
-                  sx={fieldSx}
-                />
-                <TextField
-                  inputRef={rfArtistConfirm}
-                  type={showArtistRegConfirm ? "text" : "password"}
-                  label="Confirm password"
-                  fullWidth
-                  margin="dense"
-                  autoComplete="new-password"
-                  InputProps={{
-                    startAdornment: <InputAdornment position="start"><Lock sx={{ color: tickahub.textMuted, fontSize: 20 }} /></InputAdornment>,
-                    endAdornment: <PasswordToggle show={showArtistRegConfirm} onToggle={() => setShowArtistRegConfirm(!showArtistRegConfirm)} />,
-                  }}
-                  sx={fieldSx}
-                />
-                <Button type="submit" fullWidth size="large" disabled={loading} sx={{ ...pillBtnSx, background: cyanGradient, color: tickahub.navy, boxShadow: `0 8px 24px ${tickahub.cyan}44` }}>
-                  {loading ? "Creating..." : "Sign up"}
-                </Button>
-              </form>
+              <Box className="sign-up-form-shell">
+                <form className="sign-up-form" onSubmit={registerArtist}>
+                  <Box className="register-grid">
+                    <TextField inputRef={rfStageName} label="Stage name" fullWidth size="small" autoComplete="nickname" InputProps={{ startAdornment: <InputAdornment position="start"><MicExternalOn sx={{ color: tickahub.textMuted, fontSize: 18 }} /></InputAdornment> }} sx={compactFieldSx} />
+                    <TextField inputRef={rfArtistName} label="Full name" fullWidth size="small" autoComplete="name" InputProps={{ startAdornment: <InputAdornment position="start"><Person sx={{ color: tickahub.textMuted, fontSize: 18 }} /></InputAdornment> }} sx={compactFieldSx} />
+                    <TextField inputRef={rfArtistEmail} type="email" label="Email" fullWidth size="small" autoComplete="email" InputProps={{ startAdornment: <InputAdornment position="start"><Email sx={{ color: tickahub.textMuted, fontSize: 18 }} /></InputAdornment> }} sx={compactFieldSx} />
+                    <TextField inputRef={rfArtistPhone} label="Phone (optional)" fullWidth size="small" autoComplete="tel" sx={compactFieldSx} />
+                    <Box sx={{ gridColumn: "1 / -1" }}>
+                      <TextField inputRef={rfGenre} label="Genre (optional)" fullWidth size="small" sx={compactFieldSx} />
+                    </Box>
+                    <TextField
+                      inputRef={rfArtistPassword}
+                      type={showArtistRegPassword ? "text" : "password"}
+                      label="Password"
+                      fullWidth
+                      size="small"
+                      autoComplete="new-password"
+                      InputProps={{
+                        startAdornment: <InputAdornment position="start"><Lock sx={{ color: tickahub.textMuted, fontSize: 18 }} /></InputAdornment>,
+                        endAdornment: <PasswordToggle show={showArtistRegPassword} onToggle={() => setShowArtistRegPassword(!showArtistRegPassword)} />,
+                      }}
+                      sx={compactFieldSx}
+                    />
+                    <TextField
+                      inputRef={rfArtistConfirm}
+                      type={showArtistRegConfirm ? "text" : "password"}
+                      label="Confirm password"
+                      fullWidth
+                      size="small"
+                      autoComplete="new-password"
+                      InputProps={{
+                        startAdornment: <InputAdornment position="start"><Lock sx={{ color: tickahub.textMuted, fontSize: 18 }} /></InputAdornment>,
+                        endAdornment: <PasswordToggle show={showArtistRegConfirm} onToggle={() => setShowArtistRegConfirm(!showArtistRegConfirm)} />,
+                      }}
+                      sx={compactFieldSx}
+                    />
+                  </Box>
+                  <Button type="submit" fullWidth size="large" disabled={loading} sx={{ ...pillBtnSx, mt: 2.25, py: 1.4, background: cyanGradient, color: tickahub.navy, boxShadow: `0 8px 24px ${tickahub.cyan}44` }}>
+                    {loading ? "Creating..." : "Sign up"}
+                  </Button>
+                </form>
+              </Box>
             )}
             <Typography
               variant="body2"
