@@ -628,6 +628,90 @@ export default function MyProfile() {
   const hasPhoto = Boolean(avatarSrc);
   const canAddMorePhotos = !isArtist || profileImages.length < MAX_ARTIST_PHOTOS;
 
+  const artistGalleryPanel = isArtist ? (
+    <Box
+      sx={{
+        p: { xs: 0, md: 1.5 },
+        borderRadius: 2,
+        border: { xs: "none", md: `1px solid ${tickahub.borderSubtle}` },
+        bgcolor: { xs: "transparent", md: `${tickahub.navy}66` },
+        minWidth: { md: 220 },
+        maxWidth: { md: 380 },
+      }}
+    >
+      <Typography
+        sx={{
+          color: tickahub.textMuted,
+          fontSize: "0.75rem",
+          mb: 1,
+          textAlign: { xs: "left", md: "right" },
+          fontWeight: 600,
+        }}
+      >
+        Profile gallery ({profileImages.length}/{MAX_ARTIST_PHOTOS})
+      </Typography>
+      <Stack
+        direction="row"
+        spacing={1}
+        flexWrap="wrap"
+        useFlexGap
+        justifyContent={{ xs: "flex-start", md: "flex-end" }}
+      >
+        {profileImages.map((imagePath) => (
+          <Box key={imagePath} sx={{ position: "relative" }}>
+            <Avatar
+              variant="rounded"
+              src={getProfileImageUrl({ profile_image: imagePath }) || undefined}
+              sx={{
+                width: { xs: 72, md: 64 },
+                height: { xs: 72, md: 64 },
+                border: `2px solid ${tickahub.borderSubtle}`,
+                bgcolor: tickahub.navy,
+              }}
+            >
+              {getInitials(displayName)}
+            </Avatar>
+            <IconButton
+              size="small"
+              disabled={photoUploading}
+              onClick={() => handleRemovePhoto(imagePath)}
+              sx={{
+                position: "absolute",
+                top: -8,
+                right: -8,
+                width: 24,
+                height: 24,
+                bgcolor: "#ff6b6b",
+                color: "#fff",
+                border: `2px solid ${tickahub.surface}`,
+                "&:hover": { bgcolor: "#ff5252" },
+              }}
+            >
+              <DeletePhotoIcon sx={{ fontSize: 14 }} />
+            </IconButton>
+          </Box>
+        ))}
+        {canAddMorePhotos && (
+          <IconButton
+            disabled={photoUploading}
+            onClick={() => fileInputRef.current?.click()}
+            sx={{
+              width: { xs: 72, md: 64 },
+              height: { xs: 72, md: 64 },
+              borderRadius: 2,
+              border: `1px dashed ${tickahub.cyan}66`,
+              color: tickahub.cyan,
+              bgcolor: `${tickahub.cyan}08`,
+              "&:hover": { bgcolor: `${tickahub.cyan}16` },
+            }}
+          >
+            <PhotoCameraIcon />
+          </IconButton>
+        )}
+      </Stack>
+    </Box>
+  ) : null;
+
   const profileHeaderActions = editMode ? (
     <>
       <Button
@@ -746,7 +830,7 @@ export default function MyProfile() {
           background: `linear-gradient(135deg, ${tickahub.navyLight} 0%, ${tickahub.surface} 100%)`,
         }}
       >
-        <Stack spacing={{ xs: 1.5, md: 0 }}>
+        <Stack spacing={{ xs: 1.5, md: 1.5 }}>
           <Stack
             direction="row"
             alignItems="center"
@@ -761,9 +845,20 @@ export default function MyProfile() {
 
           <Stack
             direction="row"
-            alignItems={{ xs: "flex-start", md: "center" }}
+            alignItems="center"
             justifyContent="space-between"
-            flexWrap={{ md: "wrap" }}
+            sx={{ display: { xs: "none", md: "flex" } }}
+          >
+            {profileTitle}
+            <Stack direction="row" spacing={0.75} alignItems="center" sx={{ flexShrink: 0 }}>
+              {profileHeaderActions}
+            </Stack>
+          </Stack>
+
+          <Stack
+            direction={{ xs: "column", md: "row" }}
+            alignItems={{ xs: "stretch", md: "flex-start" }}
+            justifyContent="space-between"
             gap={2}
           >
             <Stack direction="row" alignItems="center" spacing={2} sx={{ flex: 1, minWidth: 0 }}>
@@ -810,7 +905,6 @@ export default function MyProfile() {
                 />
               </Box>
               <Box sx={{ minWidth: 0 }}>
-                <Box sx={{ display: { xs: "none", md: "block" } }}>{profileTitle}</Box>
                 <Typography sx={{ color: tickahub.textMuted, fontSize: "0.85rem" }}>
                   {displayName}
                   {!isArtist && profile.organizer_status ? ` · ${profile.organizer_status}` : ""}
@@ -864,77 +958,26 @@ export default function MyProfile() {
                     </Button>
                   )}
                 </Stack>
-                {isArtist && (
-                  <Box sx={{ mt: 1.5 }}>
-                    <Typography sx={{ color: tickahub.textMuted, fontSize: "0.75rem", mb: 1 }}>
-                      Profile gallery ({profileImages.length}/{MAX_ARTIST_PHOTOS})
-                    </Typography>
-                    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                      {profileImages.map((imagePath) => (
-                        <Box key={imagePath} sx={{ position: "relative" }}>
-                          <Avatar
-                            variant="rounded"
-                            src={getProfileImageUrl({ profile_image: imagePath }) || undefined}
-                            sx={{
-                              width: 72,
-                              height: 72,
-                              border: `2px solid ${tickahub.borderSubtle}`,
-                              bgcolor: tickahub.navy,
-                            }}
-                          >
-                            {getInitials(displayName)}
-                          </Avatar>
-                          <IconButton
-                            size="small"
-                            disabled={photoUploading}
-                            onClick={() => handleRemovePhoto(imagePath)}
-                            sx={{
-                              position: "absolute",
-                              top: -8,
-                              right: -8,
-                              width: 24,
-                              height: 24,
-                              bgcolor: "#ff6b6b",
-                              color: "#fff",
-                              border: `2px solid ${tickahub.surface}`,
-                              "&:hover": { bgcolor: "#ff5252" },
-                            }}
-                          >
-                            <DeletePhotoIcon sx={{ fontSize: 14 }} />
-                          </IconButton>
-                        </Box>
-                      ))}
-                      {canAddMorePhotos && (
-                        <IconButton
-                          disabled={photoUploading}
-                          onClick={() => fileInputRef.current?.click()}
-                          sx={{
-                            width: 72,
-                            height: 72,
-                            borderRadius: 2,
-                            border: `1px dashed ${tickahub.cyan}66`,
-                            color: tickahub.cyan,
-                            bgcolor: `${tickahub.cyan}08`,
-                            "&:hover": { bgcolor: `${tickahub.cyan}16` },
-                          }}
-                        >
-                          <PhotoCameraIcon />
-                        </IconButton>
-                      )}
-                    </Stack>
+                {artistGalleryPanel && (
+                  <Box sx={{ mt: 1.5, display: { xs: "block", md: "none" } }}>
+                    {artistGalleryPanel}
                   </Box>
                 )}
               </Box>
             </Stack>
 
-            <Stack
-              direction="row"
-              spacing={1}
-              flexWrap="wrap"
-              sx={{ display: { xs: "none", md: "flex" }, flexShrink: 0 }}
-            >
-              {profileHeaderActions}
-            </Stack>
+            {artistGalleryPanel && (
+              <Box
+                sx={{
+                  display: { xs: "none", md: "block" },
+                  flexShrink: 0,
+                  ml: { md: "auto" },
+                  alignSelf: "flex-start",
+                }}
+              >
+                {artistGalleryPanel}
+              </Box>
+            )}
           </Stack>
         </Stack>
       </Paper>
