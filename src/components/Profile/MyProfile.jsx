@@ -28,6 +28,7 @@ import {
   Description as BioIcon,
   PhotoCamera as PhotoCameraIcon,
   DeleteOutline as DeletePhotoIcon,
+  Share as ShareIcon,
 } from "@mui/icons-material";
 import Swal from "sweetalert2";
 import { tickahub, goldGradient, backgroundGradient, cyanGradient } from "../../tickahubTheme";
@@ -107,6 +108,14 @@ const cardHeaderSx = {
   borderBottom: `1px solid ${tickahub.borderSubtle}`,
 };
 
+const SOCIAL_FIELDS = [
+  { key: "facebook_url", label: "facebook", placeholder: "https://facebook.com/yourpage" },
+  { key: "instagram_url", label: "instagram", placeholder: "https://instagram.com/yourhandle" },
+  { key: "tiktok_url", label: "tiktok", placeholder: "https://tiktok.com/@yourhandle" },
+  { key: "twitter_url", label: "twitter / X", placeholder: "https://x.com/yourhandle" },
+  { key: "linkedin_url", label: "linkedin", placeholder: "https://linkedin.com/in/yourprofile" },
+];
+
 const emptyProfile = {
   full_name: "",
   email: "",
@@ -123,6 +132,11 @@ const emptyProfile = {
   bio: "",
   genre: "",
   profile_image: "",
+  facebook_url: "",
+  instagram_url: "",
+  tiktok_url: "",
+  twitter_url: "",
+  linkedin_url: "",
   isActive: true,
   lastLogin: null,
 };
@@ -191,6 +205,47 @@ const ViewField = ({ label, value, multiline = false }) => (
   </Box>
 );
 
+const ViewLinkField = ({ label, value }) => {
+  const trimmed = (value || "").trim();
+  const href = trimmed
+    ? trimmed.startsWith("http")
+      ? trimmed
+      : `https://${trimmed}`
+    : "";
+
+  return (
+    <Box>
+      <Typography variant="caption" sx={{ color: tickahub.textMuted, fontFamily: "monospace", fontSize: "0.72rem" }}>
+        {label}
+      </Typography>
+      {trimmed ? (
+        <Typography
+          component="a"
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          sx={{
+            display: "inline-block",
+            color: tickahub.cyan,
+            fontSize: "0.9rem",
+            fontWeight: 600,
+            mt: 0.35,
+            wordBreak: "break-all",
+            textDecoration: "none",
+            "&:hover": { textDecoration: "underline" },
+          }}
+        >
+          {trimmed}
+        </Typography>
+      ) : (
+        <Typography sx={{ color: "#fff", fontSize: "0.9rem", fontWeight: 500, mt: 0.35 }}>
+          —
+        </Typography>
+      )}
+    </Box>
+  );
+};
+
 export default function MyProfile() {
   const userRole = getUserRole();
   const isArtist = userRole === "artist";
@@ -223,6 +278,11 @@ export default function MyProfile() {
       bio: u.bio || "",
       genre: u.genre || "",
       profile_image: u.profile_image || "",
+      facebook_url: u.facebook_url || "",
+      instagram_url: u.instagram_url || "",
+      tiktok_url: u.tiktok_url || "",
+      twitter_url: u.twitter_url || "",
+      linkedin_url: u.linkedin_url || "",
       isActive: u.isActive !== false,
       lastLogin: u.lastLogin || null,
     };
@@ -285,6 +345,9 @@ export default function MyProfile() {
       formData.append("stage_name", profile.stage_name.trim());
       formData.append("genre", profile.genre.trim());
       formData.append("bio", profile.bio.trim());
+      SOCIAL_FIELDS.forEach(({ key }) => {
+        formData.append(key, profile[key].trim());
+      });
     } else {
       formData.append("full_name", profile.full_name.trim());
       formData.append("phone", profile.phone.trim());
@@ -466,6 +529,9 @@ export default function MyProfile() {
             stage_name: profile.stage_name.trim(),
             genre: profile.genre.trim(),
             bio: profile.bio.trim(),
+            ...Object.fromEntries(
+              SOCIAL_FIELDS.map(({ key }) => [key, profile[key].trim()])
+            ),
           }
         : {
             full_name: profile.full_name.trim(),
@@ -864,6 +930,33 @@ export default function MyProfile() {
                 ) : (
                   <ViewField label="bio" value={profile.bio} multiline />
                 )}
+              </Stack>
+            </ProfileCard>
+
+            <ProfileCard
+              headerBg={`linear-gradient(135deg, ${tickahub.gold}18, transparent)`}
+              icon={ShareIcon}
+              iconColor={tickahub.gold}
+              title="Social media"
+              subtitle="Links fans can follow"
+            >
+              <Stack spacing={1.5}>
+                {editMode
+                  ? SOCIAL_FIELDS.map(({ key, label, placeholder }) => (
+                      <TextField
+                        key={key}
+                        label={label}
+                        size="small"
+                        fullWidth
+                        value={profile[key]}
+                        onChange={(e) => setField(key, e.target.value)}
+                        placeholder={placeholder}
+                        sx={fieldSx}
+                      />
+                    ))
+                  : SOCIAL_FIELDS.map(({ key, label }) => (
+                      <ViewLinkField key={key} label={label} value={profile[key]} />
+                    ))}
               </Stack>
             </ProfileCard>
           </>

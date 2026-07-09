@@ -37,6 +37,9 @@ import { appendEventScheduleFields } from "./eventFormPickers";
 import { getTicketTierValidation } from "./ticketTierValidation";
 import EventLineupFields from "./EventLineupFields";
 import { serializeLineupForSubmit } from "./eventLineup";
+import EventMerchandiseFields, {
+  appendMerchandiseToFormData,
+} from "./EventMerchandiseFields";
 
 const EventCreate = () => {
   const navigate = useNavigate();
@@ -57,6 +60,7 @@ const EventCreate = () => {
   });
   const [ticketPrices, setTicketPrices] = useState([{ category: "", price: "", quantity: "" }]);
   const [lineup, setLineup] = useState([]);
+  const [merchandise, setMerchandise] = useState([]);
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [filePreviews, setFilePreviews] = useState([]);
 
@@ -131,6 +135,8 @@ const EventCreate = () => {
 
       const lineupPayload = serializeLineupForSubmit(lineup);
       if (lineupPayload.length) formData.append("lineup", JSON.stringify(lineupPayload));
+
+      appendMerchandiseToFormData(formData, merchandise);
 
       selectedFiles.forEach((file) => formData.append("event_image", file));
 
@@ -290,6 +296,10 @@ const EventCreate = () => {
           <Button size="small" startIcon={<AddIcon />} onClick={() => setTicketPrices([...ticketPrices, { category: "", price: "", quantity: "" }])} sx={{ color: tickahub.cyan, textTransform: "none", alignSelf: "flex-start" }}>
             Add tier
           </Button>
+
+          <Divider sx={{ borderColor: tickahub.borderSubtle }} />
+          <SectionLabel accent={tickahub.gold}>Merchandise</SectionLabel>
+          <EventMerchandiseFields items={merchandise} onChange={setMerchandise} />
 
           <Divider sx={{ borderColor: tickahub.borderSubtle }} />
           <SectionLabel>Cover image</SectionLabel>
