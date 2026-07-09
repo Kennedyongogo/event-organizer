@@ -38,10 +38,22 @@ export const getRoleLabel = () => {
 };
 
 export const getProfileImageUrl = (user) => {
-  const path = user?.profile_image;
+  const images = Array.isArray(user?.profile_images)
+    ? user.profile_images.filter(Boolean)
+    : [];
+  const path = images[0] || user?.profile_image;
   if (!path) return null;
   if (/^(https?:|data:)/i.test(path)) return path;
   return path.startsWith("/") ? path : `/${path}`;
+};
+
+export const getProfileImagePaths = (user) => {
+  const images = Array.isArray(user?.profile_images)
+    ? user.profile_images.map((item) => String(item || "").trim()).filter(Boolean)
+    : [];
+  if (images.length) return images;
+  const single = String(user?.profile_image || "").trim();
+  return single ? [single] : [];
 };
 
 export const notifyUserUpdated = (user) => {

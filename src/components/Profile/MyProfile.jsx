@@ -37,6 +37,7 @@ import {
   getInitials,
   getUserRole,
   getProfileImageUrl,
+  getProfileImagePaths,
   notifyUserUpdated,
 } from "../../utils/userDisplay";
 
@@ -132,6 +133,7 @@ const emptyProfile = {
   bio: "",
   genre: "",
   profile_image: "",
+  profile_images: [],
   facebook_url: "",
   instagram_url: "",
   tiktok_url: "",
@@ -150,6 +152,7 @@ const authHeaders = (json = true) => {
 };
 
 const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
+const MAX_ARTIST_PHOTOS = 10;
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
 
 const statusChipColor = (status) => {
@@ -278,6 +281,7 @@ export default function MyProfile() {
       bio: u.bio || "",
       genre: u.genre || "",
       profile_image: u.profile_image || "",
+      profile_images: getProfileImagePaths(u),
       facebook_url: u.facebook_url || "",
       instagram_url: u.instagram_url || "",
       tiktok_url: u.tiktok_url || "",
@@ -361,31 +365,48 @@ export default function MyProfile() {
   };
 
   const handlePhotoSelect = async (e) => {
-    const file = e.target.files?.[0];
+    const selectedFiles = isArtist
+      ? Array.from(e.target.files || [])
+      : [e.target.files?.[0]].filter(Boolean);
     e.target.value = "";
-    if (!file) return;
+    if (!selectedFiles.length) return;
 
-    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-      Swal.fire({
-        icon: "error",
-        title: "Invalid file type",
-        text: "Use JPG, PNG, GIF, or WebP.",
-        ...swalDark,
-      });
-      return;
-    }
-    if (file.size > MAX_PHOTO_BYTES) {
-      Swal.fire({
-        icon: "error",
-        title: "File too large",
-        text: "Maximum size is 10MB.",
-        ...swalDark,
-      });
-      return;
+    for (const file of selectedFiles) {
+      if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+        Swal.fire({
+          icon: "error",
+          title: "Invalid file type",
+          text: "Use JPG, PNG, GIF, or WebP.",
+          ...swalDark,
+        });
+        return;
+      }
+      if (file.size > MAX_PHOTO_BYTES) {
+        Swal.fire({
+          icon: "error",
+          title: "File too large",
+          text: "Maximum size is 10MB.",
+          ...swalDark,
+        });
+        return;
+      }
     }
 
-    const previewUrl = URL.createObjectURL(file);
-    setPhotoPreview(previewUrl);
+    if (isArtist) {
+      const currentCount = getProfileImagePaths(profile).length;
+      if (currentCount + selectedFiles.length > MAX_ARTIST_PHOTOS) {
+        Swal.fire({
+          icon: "error",
+          title: "Photo limit reached",
+          text: `You can upload up to ${MAX_ARTIST_PHOTOS} profile photos.`,
+          ...swalDark,
+        });
+        return;
+      }
+    }
+
+    const previewUrl = isArtist ? null : URL.createObjectURL(selectedFiles[0]);
+    if (previewUrl) setPhotoPreview(previewUrl);
 
     const token = localStorage.getItem("token");
     if (!token) return;
@@ -393,14 +414,18 @@ export default function MyProfile() {
     try {
       setPhotoUploading(true);
       Swal.fire({
-        title: "Uploading photo...",
+        title: isArtist ? "Uploading photos..." : "Uploading photo...",
         allowOutsideClick: false,
         ...swalDark,
         didOpen: () => Swal.showLoading(),
       });
 
       const formData = new FormData();
-      formData.append("profile_image", file);
+      if (isArtist) {
+        selectedFiles.forEach((file) => formData.append("profile_images", file));
+      } else {
+        formData.append("profile_image", selectedFiles[0]);
+      }
       appendProfileFields(formData);
 
       const response = await fetch(profileUrl(), {
@@ -416,19 +441,23 @@ export default function MyProfile() {
 
       applyProfile(data.data);
       notifyUserUpdated(data.data);
-      URL.revokeObjectURL(previewUrl);
-      setPhotoPreview(null);
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+        setPhotoPreview(null);
+      }
 
       Swal.fire({
         icon: "success",
-        title: "Photo updated",
+        title: isArtist ? "Photos updated" : "Photo updated",
         timer: 1800,
         showConfirmButton: false,
         ...swalDark,
       });
     } catch (err) {
-      URL.revokeObjectURL(previewUrl);
-      setPhotoPreview(null);
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+        setPhotoPreview(null);
+      }
       Swal.fire({
         icon: "error",
         title: "Upload failed",
@@ -440,13 +469,22 @@ export default function MyProfile() {
     }
   };
 
-  const handleRemovePhoto = async () => {
-    if (!profile.profile_image && !photoPreview) return;
+  const handleRemovePhoto = async (imagePath = null) => {
+    const currentImages = getProfileImagePaths(profile);
+    if (isArtist) {
+      if (!imagePath && !currentImages.length && !photoPreview) return;
+    } else if (!profile.profile_image && !photoPreview) {
+      return;
+    }
 
     const result = await Swal.fire({
       icon: "warning",
-      title: "Remove photo?",
-      text: "Your profile picture will be removed.",
+      title: isArtist && imagePath ? "Remove this photo?" : "Remove photo?",
+      text: isArtist && imagePath
+        ? "This profile photo will be removed from your gallery."
+        : isArtist
+          ? "All profile photos will be removed."
+          : "Your profile picture will be removed.",
       showCancelButton: true,
       confirmButtonText: "Remove",
       cancelButtonText: "Cancel",
@@ -468,7 +506,11 @@ export default function MyProfile() {
       });
 
       const formData = new FormData();
-      formData.append("remove_profile_image", "true");
+      if (isArtist && imagePath) {
+        formData.append("remove_profile_images", JSON.stringify([imagePath]));
+      } else {
+        formData.append("remove_profile_image", "true");
+      }
       appendProfileFields(formData);
 
       const response = await fetch(profileUrl(), {
@@ -581,8 +623,10 @@ export default function MyProfile() {
 
   const displayName = getDisplayName(profile);
   const roleLabel = profile.role || (isArtist ? "artist" : "event_organizer");
+  const profileImages = getProfileImagePaths(profile);
   const avatarSrc = photoPreview || getProfileImageUrl(profile);
   const hasPhoto = Boolean(avatarSrc);
+  const canAddMorePhotos = !isArtist || profileImages.length < MAX_ARTIST_PHOTOS;
 
   const profileHeaderActions = editMode ? (
     <>
@@ -760,6 +804,7 @@ export default function MyProfile() {
                   ref={fileInputRef}
                   type="file"
                   accept={ACCEPTED_IMAGE_TYPES.join(",")}
+                  multiple={isArtist}
                   hidden
                   onChange={handlePhotoSelect}
                 />
@@ -774,29 +819,37 @@ export default function MyProfile() {
                   Last login: {formatDate(profile.lastLogin)}
                 </Typography>
                 <Stack direction="row" spacing={1} mt={1} flexWrap="wrap" useFlexGap>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    disabled={photoUploading}
-                    onClick={() => fileInputRef.current?.click()}
-                    startIcon={<PhotoCameraIcon />}
-                    sx={{
-                      textTransform: "none",
-                      fontWeight: 600,
-                      fontSize: "0.75rem",
-                      color: tickahub.cyan,
-                      borderColor: `${tickahub.cyan}55`,
-                      "&:hover": { borderColor: tickahub.cyan, bgcolor: `${tickahub.cyan}10` },
-                    }}
-                  >
-                    {hasPhoto ? "Change photo" : "Add photo"}
-                  </Button>
+                  {canAddMorePhotos && (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      disabled={photoUploading}
+                      onClick={() => fileInputRef.current?.click()}
+                      startIcon={<PhotoCameraIcon />}
+                      sx={{
+                        textTransform: "none",
+                        fontWeight: 600,
+                        fontSize: "0.75rem",
+                        color: tickahub.cyan,
+                        borderColor: `${tickahub.cyan}55`,
+                        "&:hover": { borderColor: tickahub.cyan, bgcolor: `${tickahub.cyan}10` },
+                      }}
+                    >
+                      {isArtist
+                        ? profileImages.length
+                          ? "Add photos"
+                          : "Add photos"
+                        : hasPhoto
+                          ? "Change photo"
+                          : "Add photo"}
+                    </Button>
+                  )}
                   {hasPhoto && (
                     <Button
                       size="small"
                       variant="outlined"
                       disabled={photoUploading}
-                      onClick={handleRemovePhoto}
+                      onClick={() => handleRemovePhoto()}
                       startIcon={<DeletePhotoIcon />}
                       sx={{
                         textTransform: "none",
@@ -807,10 +860,70 @@ export default function MyProfile() {
                         "&:hover": { borderColor: "#ff8a8a", bgcolor: "rgba(255,138,138,0.08)" },
                       }}
                     >
-                      Remove
+                      {isArtist ? "Remove all" : "Remove"}
                     </Button>
                   )}
                 </Stack>
+                {isArtist && (
+                  <Box sx={{ mt: 1.5 }}>
+                    <Typography sx={{ color: tickahub.textMuted, fontSize: "0.75rem", mb: 1 }}>
+                      Profile gallery ({profileImages.length}/{MAX_ARTIST_PHOTOS})
+                    </Typography>
+                    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                      {profileImages.map((imagePath) => (
+                        <Box key={imagePath} sx={{ position: "relative" }}>
+                          <Avatar
+                            variant="rounded"
+                            src={getProfileImageUrl({ profile_image: imagePath }) || undefined}
+                            sx={{
+                              width: 72,
+                              height: 72,
+                              border: `2px solid ${tickahub.borderSubtle}`,
+                              bgcolor: tickahub.navy,
+                            }}
+                          >
+                            {getInitials(displayName)}
+                          </Avatar>
+                          <IconButton
+                            size="small"
+                            disabled={photoUploading}
+                            onClick={() => handleRemovePhoto(imagePath)}
+                            sx={{
+                              position: "absolute",
+                              top: -8,
+                              right: -8,
+                              width: 24,
+                              height: 24,
+                              bgcolor: "#ff6b6b",
+                              color: "#fff",
+                              border: `2px solid ${tickahub.surface}`,
+                              "&:hover": { bgcolor: "#ff5252" },
+                            }}
+                          >
+                            <DeletePhotoIcon sx={{ fontSize: 14 }} />
+                          </IconButton>
+                        </Box>
+                      ))}
+                      {canAddMorePhotos && (
+                        <IconButton
+                          disabled={photoUploading}
+                          onClick={() => fileInputRef.current?.click()}
+                          sx={{
+                            width: 72,
+                            height: 72,
+                            borderRadius: 2,
+                            border: `1px dashed ${tickahub.cyan}66`,
+                            color: tickahub.cyan,
+                            bgcolor: `${tickahub.cyan}08`,
+                            "&:hover": { bgcolor: `${tickahub.cyan}16` },
+                          }}
+                        >
+                          <PhotoCameraIcon />
+                        </IconButton>
+                      )}
+                    </Stack>
+                  </Box>
+                )}
               </Box>
             </Stack>
 
