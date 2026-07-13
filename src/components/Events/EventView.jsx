@@ -113,6 +113,7 @@ const EventView = () => {
 
   const imageSrc = buildImageUrl(event.image_url || event.image);
   const ticketTiers = Array.isArray(event.ticket_prices) ? event.ticket_prices : [];
+  const merchandise = Array.isArray(event.merchandise) ? event.merchandise : [];
 
   return (
     <Box sx={pageShellSx}>
@@ -240,6 +241,67 @@ const EventView = () => {
             ))
           ) : (
             <Typography sx={{ color: tickahub.textMuted, fontSize: "0.85rem" }}>No pricing tiers set</Typography>
+          )}
+
+          <Divider sx={{ borderColor: tickahub.borderSubtle }} />
+          <SectionLabel accent={tickahub.gold}>Merchandise</SectionLabel>
+          {merchandise.length > 0 ? (
+            merchandise.map((item, i) => {
+              const merchImageSrc = buildImageUrl(item.image_url);
+              return (
+                <Box
+                  key={item.id || `merch-${i}`}
+                  sx={{
+                    width: "100%",
+                    borderRadius: 2,
+                    overflow: "hidden",
+                    bgcolor: tickahub.navy,
+                    border: `1px solid ${tickahub.borderSubtle}`,
+                  }}
+                >
+                  {merchImageSrc && (
+                    <Box
+                      component="img"
+                      src={merchImageSrc}
+                      alt={item.name || "Merchandise"}
+                      sx={{
+                        width: "100%",
+                        height: 200,
+                        objectFit: "cover",
+                        display: "block",
+                      }}
+                    />
+                  )}
+                  <Stack spacing={0.75} sx={{ p: 1.5 }}>
+                    <Typography sx={{ color: tickahub.gold, fontWeight: 700 }}>
+                      {item.name}
+                    </Typography>
+                    <Typography sx={{ color: "#fff", fontWeight: 800 }}>
+                      KES {parseFloat(item.price)?.toLocaleString()}
+                    </Typography>
+                    {item.pickup_point && (
+                      <Typography variant="caption" sx={{ color: tickahub.textMuted }}>
+                        Pickup: {item.pickup_point}
+                      </Typography>
+                    )}
+                    {item.quantity_available != null && (
+                      <Typography variant="caption" sx={{ color: tickahub.textMuted }}>
+                        Qty available: {item.quantity_available}
+                      </Typography>
+                    )}
+                    {item.commission_rate != null && item.commission_rate !== "" && (
+                      <Typography variant="caption" sx={{ color: tickahub.textMuted }}>
+                        Commission: {item.commission_rate}%
+                      </Typography>
+                    )}
+                  </Stack>
+                </Box>
+              );
+            })
+          ) : (
+            <Typography sx={{ color: tickahub.textMuted, fontSize: "0.85rem" }}>
+              No merchandise added
+            </Typography>
           )}
 
           {event.organizer && (
