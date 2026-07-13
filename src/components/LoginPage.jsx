@@ -29,6 +29,7 @@ import {
 } from "@mui/icons-material";
 import Swal from "sweetalert2";
 import { tickahub, goldGradient, cyanGradient, backgroundGradient } from "../tickahubTheme";
+import ArtistGenreField from "./Profile/ArtistGenreField";
 import "./loginSplit.css";
 
 const fieldSx = {
@@ -142,6 +143,7 @@ export default function LoginPage() {
   const [showOrgRegConfirm, setShowOrgRegConfirm] = useState(false);
   const [showArtistRegPassword, setShowArtistRegPassword] = useState(false);
   const [showArtistRegConfirm, setShowArtistRegConfirm] = useState(false);
+  const [artistRegistrationGenres, setArtistRegistrationGenres] = useState([]);
   const [openResetDialog, setOpenResetDialog] = useState(false);
 
   const registerActive = !isLoginMode;
@@ -173,7 +175,6 @@ export default function LoginPage() {
   const rfArtistPassword = useRef();
   const rfArtistConfirm = useRef();
   const rfArtistPhone = useRef();
-  const rfGenre = useRef();
 
   const validateEmail = (email) =>
     String(email)
@@ -303,7 +304,7 @@ export default function LoginPage() {
       email: rfArtistEmail.current.value.toLowerCase().trim(),
       password: rfArtistPassword.current.value,
       phone: rfArtistPhone.current?.value?.trim() || "",
-      genre: rfGenre.current?.value?.trim() || "",
+      genre: artistRegistrationGenres,
     };
     if (!payload.full_name && !payload.stage_name) {
       Swal.fire({ icon: "error", title: "Enter your name or stage name", ...swalDark });
@@ -556,7 +557,11 @@ export default function LoginPage() {
                     <TextField inputRef={rfArtistEmail} type="email" label="Email" fullWidth size="small" autoComplete="email" InputProps={{ startAdornment: <InputAdornment position="start"><Email sx={{ color: tickahub.textMuted, fontSize: 18 }} /></InputAdornment> }} sx={compactFieldSx} />
                     <TextField inputRef={rfArtistPhone} label="Phone (optional)" fullWidth size="small" autoComplete="tel" sx={compactFieldSx} />
                     <Box sx={{ gridColumn: "1 / -1" }}>
-                      <TextField inputRef={rfGenre} label="Genres (comma-separated)" fullWidth size="small" placeholder="Hip Hop, Afro-pop" sx={compactFieldSx} />
+                      <ArtistGenreField
+                        value={artistRegistrationGenres}
+                        onChange={setArtistRegistrationGenres}
+                        helperText="Type any genre you perform — press Enter or Add. Suggestions below are optional."
+                      />
                     </Box>
                     <TextField
                       inputRef={rfArtistPassword}
