@@ -43,6 +43,7 @@ import EventMerchandiseFields, {
   appendMerchandiseToFormData,
   parseMerchandiseFromApi,
 } from "./EventMerchandiseFields";
+import { buildAssetUrl } from "../../utils/assetUrl";
 
 const EventEdit = () => {
   const { id } = useParams();
@@ -82,13 +83,7 @@ const EventEdit = () => {
     fetchEvent();
   }, [id]);
 
-  const buildImageUrl = (imageUrl) => {
-    if (!imageUrl) return "";
-    if (imageUrl.startsWith("http")) return imageUrl;
-    if (imageUrl.startsWith("uploads/")) return `/${imageUrl}`;
-    if (imageUrl.startsWith("/uploads/")) return imageUrl;
-    return imageUrl;
-  };
+  const buildImageUrl = buildAssetUrl;
 
   const fetchEvent = async () => {
     try {
@@ -134,12 +129,7 @@ const EventEdit = () => {
             : [{ category: "", price: "", quantity: "" }]
         );
         setLineup(parseLineupFromApi(data.lineup));
-        setMerchandise(
-          parseMerchandiseFromApi(data.merchandise).map((item) => ({
-            ...item,
-            existingImageUrl: buildImageUrl(item.existingImageUrl),
-          }))
-        );
+        setMerchandise(parseMerchandiseFromApi(data.merchandise));
         setCurrentImage(data.image_url || data.image || "");
       } else {
         setError(result.message || "Failed to fetch event details");
@@ -435,7 +425,11 @@ const EventEdit = () => {
 
           <Divider sx={{ borderColor: tickahub.borderSubtle }} />
           <SectionLabel accent={tickahub.gold}>Merchandise</SectionLabel>
-          <EventMerchandiseFields items={merchandise} onChange={setMerchandise} />
+          <EventMerchandiseFields
+            items={merchandise}
+            onChange={setMerchandise}
+            eventVenue={eventForm.venue}
+          />
 
           <Divider sx={{ borderColor: tickahub.borderSubtle }} />
           <SectionLabel>Cover image</SectionLabel>

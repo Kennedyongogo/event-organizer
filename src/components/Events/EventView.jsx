@@ -29,6 +29,7 @@ import {
 } from "../shared/tickahubPageStyles";
 import VenueMapView from "./VenueMapView";
 import EventLineupView from "./EventLineupView";
+import { buildAssetUrl } from "../../utils/assetUrl";
 
 const EventView = () => {
   const { id } = useParams();
@@ -37,13 +38,7 @@ const EventView = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const buildImageUrl = (imageUrl) => {
-    if (!imageUrl) return "";
-    if (imageUrl.startsWith("http")) return imageUrl;
-    if (imageUrl.startsWith("uploads/")) return `/${imageUrl}`;
-    if (imageUrl.startsWith("/uploads/")) return imageUrl;
-    return imageUrl;
-  };
+  const buildImageUrl = buildAssetUrl;
 
   useEffect(() => {
     fetchEvent();
@@ -248,6 +243,19 @@ const EventView = () => {
           {merchandise.length > 0 ? (
             merchandise.map((item, i) => {
               const merchImageSrc = buildImageUrl(item.image_url);
+              const pickupType =
+                item.pickup_type === "both"
+                  ? "both"
+                  : item.pickup_type === "custom"
+                    ? "custom"
+                    : "event";
+              const eventPickupLabel = [event.venue, item.pickup_point]
+                .filter(Boolean)
+                .join(" — ");
+              const customPickupLabel = [item.pickup_address, item.pickup_point]
+                .filter(Boolean)
+                .join(" — ");
+
               return (
                 <Box
                   key={item.id || `merch-${i}`}
@@ -266,7 +274,7 @@ const EventView = () => {
                       alt={item.name || "Merchandise"}
                       sx={{
                         width: "100%",
-                        height: 200,
+                        maxHeight: 280,
                         objectFit: "cover",
                         display: "block",
                       }}
@@ -279,10 +287,52 @@ const EventView = () => {
                     <Typography sx={{ color: "#fff", fontWeight: 800 }}>
                       KES {parseFloat(item.price)?.toLocaleString()}
                     </Typography>
-                    {item.pickup_point && (
-                      <Typography variant="caption" sx={{ color: tickahub.textMuted }}>
-                        Pickup: {item.pickup_point}
-                      </Typography>
+                    <Chip
+                      size="small"
+                      label={
+                        pickupType === "both"
+                          ? "Pickup: either location"
+                          : pickupType === "custom"
+                            ? "Pickup: other location"
+                            : "Pickup: at event"
+                      }
+                      sx={{
+                        alignSelf: "flex-start",
+                        height: 22,
+                        bgcolor: alpha(tickahub.cyan, 0.12),
+                        color: tickahub.cyan,
+                        fontWeight: 700,
+                        fontSize: "0.68rem",
+                      }}
+                    />
+                    {pickupType === "both" ? (
+                      <>
+                        {eventPickupLabel && (
+                          <Typography variant="caption" sx={{ color: tickahub.textMuted }}>
+                            At event: {eventPickupLabel}
+                          </Typography>
+                        )}
+                        {customPickupLabel && (
+                          <Typography variant="caption" sx={{ color: tickahub.textMuted }}>
+                            Other location: {item.pickup_address}
+                          </Typography>
+                        )}
+                      </>
+                    ) : (
+                      (pickupType === "custom" ? customPickupLabel : eventPickupLabel) && (
+                        <Typography variant="caption" sx={{ color: tickahub.textMuted }}>
+                          {pickupType === "custom" ? "Location" : "At event"}:{" "}
+                          {pickupType === "custom" ? customPickupLabel : eventPickupLabel}
+                        </Typography>
+                      )
+                    )}
+                    {(pickupType === "custom" || pickupType === "both") && (
+                      <VenueMapView
+                        latitude={item.pickup_latitude}
+                        longitude={item.pickup_longitude}
+                        venue={item.pickup_address || item.pickup_point}
+                        height={220}
+                      />
                     )}
                     {item.quantity_available != null && (
                       <Typography variant="caption" sx={{ color: tickahub.textMuted }}>

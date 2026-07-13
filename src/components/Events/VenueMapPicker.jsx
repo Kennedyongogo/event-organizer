@@ -99,6 +99,9 @@ export default function VenueMapPicker({
   longitude = "",
   onLocationChange,
   required = false,
+  label = "venue",
+  helperText = "Search OpenStreetMap, pick a result, or drag the marker on the map",
+  mapHeight = 320,
 }) {
   const [search, setSearch] = useState(venue || "");
   const [results, setResults] = useState([]);
@@ -228,7 +231,7 @@ export default function VenueMapPicker({
   return (
     <Box sx={{ width: "100%" }}>
       <TextField
-        label="venue"
+        label={label}
         size="small"
         fullWidth
         required={required}
@@ -241,10 +244,7 @@ export default function VenueMapPicker({
           inputFocusedRef.current = false;
         }}
         placeholder="Search address, venue, or city..."
-        helperText={
-          searchError ||
-          "Search OpenStreetMap, pick a result, or drag the marker on the map"
-        }
+        helperText={searchError || helperText}
         error={Boolean(searchError)}
         sx={fieldSx}
         inputProps={{ "data-venue-search": true }}
@@ -282,7 +282,7 @@ export default function VenueMapPicker({
       <Box
         sx={{
           width: "100%",
-          height: 320,
+          height: mapHeight,
           borderRadius: 2,
           overflow: "hidden",
           border: `1px solid ${tickahub.borderSubtle}`,

@@ -299,7 +299,11 @@ const EventCreate = () => {
 
           <Divider sx={{ borderColor: tickahub.borderSubtle }} />
           <SectionLabel accent={tickahub.gold}>Merchandise</SectionLabel>
-          <EventMerchandiseFields items={merchandise} onChange={setMerchandise} />
+          <EventMerchandiseFields
+            items={merchandise}
+            onChange={setMerchandise}
+            eventVenue={eventForm.venue}
+          />
 
           <Divider sx={{ borderColor: tickahub.borderSubtle }} />
           <SectionLabel>Cover image</SectionLabel>
