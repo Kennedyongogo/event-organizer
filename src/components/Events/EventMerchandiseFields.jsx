@@ -2,7 +2,6 @@ import React from "react";
 import {
   Box,
   Button,
-  IconButton,
   Stack,
   TextField,
   Typography,
@@ -113,18 +112,34 @@ const EventMerchandiseFields = ({ items, onChange }) => {
         </Typography>
       )}
 
-      {items.map((item, index) => (
+      {items.map((item, index) => {
+        const imageSrc = item.imagePreview || item.existingImageUrl;
+
+        return (
         <Box
           key={item.id || `merch-${index}`}
           sx={{
             width: "100%",
-            p: 1.5,
             borderRadius: 2,
             border: `1px solid ${tickahub.borderSubtle}`,
             bgcolor: tickahub.navy,
+            overflow: "hidden",
           }}
         >
-          <Stack spacing={1.5}>
+          {imageSrc && (
+            <Box
+              component="img"
+              src={imageSrc}
+              alt={item.name || "Merchandise"}
+              sx={{
+                width: "100%",
+                height: 200,
+                objectFit: "cover",
+                display: "block",
+              }}
+            />
+          )}
+          <Stack spacing={1.5} sx={{ p: 1.5 }}>
             <TextField
               label="item name"
               size="small"
@@ -181,33 +196,15 @@ const EventMerchandiseFields = ({ items, onChange }) => {
               helperText="Platform fee on this item. Leave blank to use the event commission rate."
               sx={fieldSx}
             />
-            <Stack direction="row" spacing={1} alignItems="center">
-              <Button component="label" variant="outlined" size="small">
-                {item.imageFile || item.existingImageUrl
-                  ? "Change image"
-                  : "Add image"}
-                <input
-                  type="file"
-                  accept="image/*"
-                  hidden
-                  onChange={(e) => handleImageSelect(index, e)}
-                />
-              </Button>
-              {(item.imagePreview || item.existingImageUrl) && (
-                <Box
-                  component="img"
-                  src={item.imagePreview || item.existingImageUrl}
-                  alt={item.name || "Merchandise"}
-                  sx={{
-                    width: 56,
-                    height: 56,
-                    objectFit: "cover",
-                    borderRadius: 1,
-                    border: `1px solid ${tickahub.borderSubtle}`,
-                  }}
-                />
-              )}
-            </Stack>
+            <Button component="label" variant="outlined" size="small" sx={{ alignSelf: "flex-start" }}>
+              {imageSrc ? "Change image" : "Add image"}
+              <input
+                type="file"
+                accept="image/*"
+                hidden
+                onChange={(e) => handleImageSelect(index, e)}
+              />
+            </Button>
             <Button
               size="small"
               startIcon={<CloseIcon />}
@@ -222,7 +219,8 @@ const EventMerchandiseFields = ({ items, onChange }) => {
             </Button>
           </Stack>
         </Box>
-      ))}
+        );
+      })}
 
       <Button
         size="small"
