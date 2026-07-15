@@ -11,6 +11,7 @@ import EventCreate from "./Events/EventCreate";
 import Analytics from "./Analytics/Analytics";
 import MyProfile from "./Profile/MyProfile";
 import ArtistSchedule from "./Schedule/ArtistSchedule";
+import ArtistBookings from "./Bookings/ArtistBookings";
 
 function HomeRedirect() {
   const role = localStorage.getItem("userRole");
@@ -76,6 +77,7 @@ function PageRoutes() {
             <Route path="home" element={<HomeRedirect />} />
             <Route path="profile" element={<MyProfile />} />
             <Route path="schedule" element={<ArtistSchedule />} />
+            <Route path="bookings" element={<ArtistBookings />} />
             <Route path="events" element={<Events />} />
             <Route path="events/create" element={<EventCreate />} />
             <Route path="events/:id" element={<EventView />} />

@@ -300,7 +300,7 @@ function ScheduleFormPanel({
                       value={form.startTime}
                       onChange={(value) => setField("startTime", value)}
                       ampm
-                      slotProps={getPickerSlotProps()}
+                      slotProps={getPickerSlotProps(true)}
                     />
                   </Grid>
                   <Grid item xs={6} sm={3}>
@@ -309,7 +309,7 @@ function ScheduleFormPanel({
                       value={form.endTime}
                       onChange={(value) => setField("endTime", value)}
                       ampm
-                      slotProps={getPickerSlotProps()}
+                      slotProps={getPickerSlotProps(true)}
                     />
                   </Grid>
                 </Grid>
@@ -948,8 +948,8 @@ export default function ArtistSchedule() {
     formData.append("venue", form.venue.trim());
     formData.append("city", form.city.trim());
     formData.append("activity_date", form.activityDate.startOf("day").toISOString());
-    if (form.startTime?.isValid()) formData.append("start_time", form.startTime.format("HH:mm:ss"));
-    if (form.endTime?.isValid()) formData.append("end_time", form.endTime.format("HH:mm:ss"));
+    formData.append("start_time", form.startTime.format("HH:mm:ss"));
+    formData.append("end_time", form.endTime.format("HH:mm:ss"));
     formData.append("description", form.description.trim());
     formData.append("external_url", form.external_url.trim());
     formData.append("is_public", form.is_public ? "true" : "false");
@@ -959,7 +959,30 @@ export default function ArtistSchedule() {
 
   const handleSave = async () => {
     if (!form.title.trim() || !form.activityDate?.isValid()) {
-      Swal.fire({ icon: "error", title: "Missing fields", text: "Title and date are required.", ...swalDark });
+      Swal.fire({
+        icon: "error",
+        title: "Missing fields",
+        text: "Title and date are required.",
+        ...swalDark,
+      });
+      return;
+    }
+    if (!form.startTime?.isValid() || !form.endTime?.isValid()) {
+      Swal.fire({
+        icon: "error",
+        title: "Missing fields",
+        text: "Start time and end time are required.",
+        ...swalDark,
+      });
+      return;
+    }
+    if (!form.endTime.isAfter(form.startTime)) {
+      Swal.fire({
+        icon: "error",
+        title: "Invalid times",
+        text: "End time must be after start time.",
+        ...swalDark,
+      });
       return;
     }
 

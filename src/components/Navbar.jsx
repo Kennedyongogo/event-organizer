@@ -4,6 +4,7 @@ import {
   Dashboard,
   AccountCircle,
   Schedule,
+  EventAvailable,
   Settings as SettingsIcon,
 } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -190,6 +191,7 @@ const isNavActive = (path, pathname) => {
   if (path === "/analytics") return pathname === "/analytics" || pathname === "/home";
   if (path === "/events") return pathname.startsWith("/events");
   if (path === "/schedule") return pathname === "/schedule";
+  if (path === "/bookings") return pathname === "/bookings";
   return pathname === path;
 };
 
@@ -286,6 +288,7 @@ const Navbar = (props) => {
         ? [
             { text: "My Profile", shortLabel: "Profile", icon: <AccountCircle />, path: "/profile" },
             { text: "Schedule", shortLabel: "Schedule", icon: <Schedule />, path: "/schedule" },
+            { text: "Bookings", shortLabel: "Bookings", icon: <EventAvailable />, path: "/bookings" },
             { text: "Settings", shortLabel: "Settings", icon: <SettingsIcon />, path: "/settings" },
           ]
         : [
