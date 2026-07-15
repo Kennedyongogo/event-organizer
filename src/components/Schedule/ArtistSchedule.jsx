@@ -149,14 +149,35 @@ const formatDisplayTime = (value) => {
   return `${h12}:${m} ${ampm}`;
 };
 
+const isOvernightRange = (start, end) => {
+  if (!start || !end) return false;
+  const startValue =
+    typeof start === "string" ? String(start).slice(0, 8) : start.format("HH:mm:ss");
+  const endValue =
+    typeof end === "string" ? String(end).slice(0, 8) : end.format("HH:mm:ss");
+  return endValue < startValue;
+};
+
 const scheduleImageUrl = (path) => {
   if (!path) return null;
   if (/^(https?:|data:)/i.test(path)) return path;
   return path.startsWith("/") ? path : `/${path}`;
 };
 
-const isUpcoming = (item) =>
-  dayjs(item.activity_date).startOf("day").valueOf() >= dayjs().startOf("day").valueOf();
+const isUpcoming = (item) => {
+  const date = dayjs(item.activity_date);
+  const end = parseTimeValue(item.end_time);
+  if (!date.isValid() || !end?.isValid()) {
+    return date.startOf("day").valueOf() >= dayjs().startOf("day").valueOf();
+  }
+  const endDate = date
+    .startOf("day")
+    .hour(end.hour())
+    .minute(end.minute())
+    .second(end.second())
+    .add(isOvernightRange(item.start_time, item.end_time) ? 1 : 0, "day");
+  return endDate.valueOf() > dayjs().valueOf();
+};
 
 const getDateParts = (value) => {
   const d = dayjs(value);
@@ -305,7 +326,11 @@ function ScheduleFormPanel({
                   </Grid>
                   <Grid item xs={6} sm={3}>
                     <TimePicker
-                      label="end_time"
+                      label={
+                        isOvernightRange(form.startTime, form.endTime)
+                          ? "end_time (next day)"
+                          : "end_time"
+                      }
                       value={form.endTime}
                       onChange={(value) => setField("endTime", value)}
                       ampm
@@ -507,7 +532,11 @@ function ScheduleCard({ item, onEdit, onDelete, muted }) {
   const img = scheduleImageUrl(item.image_url);
   const parts = getDateParts(item.activity_date);
   const location = [item.venue, item.city].filter(Boolean).join(" · ");
-  const timeRange = [item.start_time, item.end_time].filter(Boolean).map(formatDisplayTime).join(" – ");
+  const timeRange = [
+    item.start_time,
+    item.end_time,
+  ].filter(Boolean).map(formatDisplayTime).join(" – ") +
+    (isOvernightRange(item.start_time, item.end_time) ? " (next day)" : "");
 
   const accent = muted ? tickahub.textMuted : tickahub.cyan;
   const goldAccent = muted ? tickahub.textMuted : tickahub.gold;
@@ -947,7 +976,7 @@ export default function ArtistSchedule() {
     formData.append("title", form.title.trim());
     formData.append("venue", form.venue.trim());
     formData.append("city", form.city.trim());
-    formData.append("activity_date", form.activityDate.startOf("day").toISOString());
+    formData.append("activity_date", form.activityDate.format("YYYY-MM-DD"));
     formData.append("start_time", form.startTime.format("HH:mm:ss"));
     formData.append("end_time", form.endTime.format("HH:mm:ss"));
     formData.append("description", form.description.trim());
@@ -976,11 +1005,11 @@ export default function ArtistSchedule() {
       });
       return;
     }
-    if (!form.endTime.isAfter(form.startTime)) {
+    if (form.endTime.format("HH:mm:ss") === form.startTime.format("HH:mm:ss")) {
       Swal.fire({
         icon: "error",
         title: "Invalid times",
-        text: "End time must be after start time.",
+        text: "Start time and end time cannot be the same.",
         ...swalDark,
       });
       return;

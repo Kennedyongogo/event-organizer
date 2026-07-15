@@ -88,6 +88,12 @@ const EventView = () => {
     });
   };
 
+  const isOvernight =
+    event?.start_time &&
+    event?.end_time &&
+    String(event.end_time).slice(0, 8) <
+      String(event.start_time).slice(0, 8);
+
   if (loading) {
     return (
       <Box sx={{ ...pageShellSx, alignItems: "center", justifyContent: "center", minHeight: 280 }}>
@@ -212,7 +218,10 @@ const EventView = () => {
           <SectionLabel accent={tickahub.gold}>Schedule</SectionLabel>
           <ViewField label="event_date" value={formatDate(event.event_date)} />
           <ViewField label="start_time" value={formatTime(event.start_time)} />
-          <ViewField label="end_time" value={formatTime(event.end_time)} />
+          <ViewField
+            label={isOvernight ? "end_time (next day)" : "end_time"}
+            value={`${formatTime(event.end_time)}${isOvernight ? " · next day" : ""}`}
+          />
 
           <Divider sx={{ borderColor: tickahub.borderSubtle }} />
           <SectionLabel>Venue</SectionLabel>

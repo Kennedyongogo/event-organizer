@@ -73,6 +73,10 @@ const formatTime = (value) => {
   });
 };
 
+const isOvernightBooking = (booking) =>
+  String(booking?.end_time || "").slice(0, 8) <
+  String(booking?.start_time || "").slice(0, 8);
+
 const ArtistBookings = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -137,7 +141,9 @@ const ArtistBookings = () => {
       text: isConfirm
         ? `Reserve ${formatDate(booking.booking_date)}, ${formatTime(
             booking.start_time
-          )} – ${formatTime(booking.end_time)} for ${booking.requester_name}.`
+          )} – ${formatTime(booking.end_time)}${
+            isOvernightBooking(booking) ? " next day" : ""
+          } for ${booking.requester_name}.`
         : undefined,
       input: isConfirm ? undefined : "textarea",
       inputLabel: isConfirm ? undefined : "Message to requester (optional)",
@@ -415,6 +421,7 @@ const ArtistBookings = () => {
                         >
                           {formatTime(booking.start_time)} –{" "}
                           {formatTime(booking.end_time)}
+                          {isOvernightBooking(booking) ? " · next day" : ""}
                         </Typography>
                       </TableCell>
                       <TableCell sx={hideOnMobileSx}>

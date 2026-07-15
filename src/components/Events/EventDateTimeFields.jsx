@@ -14,6 +14,11 @@ export default function EventDateTimeFields({
   endTime,
   onEndTimeChange,
 }) {
+  const isOvernight =
+    startTime?.isValid?.() &&
+    endTime?.isValid?.() &&
+    endTime.format("HH:mm:ss") < startTime.format("HH:mm:ss");
+
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Stack spacing={1.5} sx={{ width: "100%" }}>
@@ -31,7 +36,7 @@ export default function EventDateTimeFields({
           slotProps={getPickerSlotProps(true)}
         />
         <TimePicker
-          label="end_time"
+          label={isOvernight ? "end_time (next day)" : "end_time"}
           value={endTime}
           onChange={onEndTimeChange}
           ampm
