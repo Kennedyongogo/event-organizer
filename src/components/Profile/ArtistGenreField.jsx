@@ -1,20 +1,26 @@
 import { useState } from "react";
 import { Box, Button, Chip, Stack, TextField, Typography } from "@mui/material";
 import { Add as AddIcon } from "@mui/icons-material";
-import { tickahub, cyanGradient } from "../../tickahubTheme";
+import { tickahub } from "../../tickahubTheme";
 import { ARTIST_GENRE_SUGGESTIONS } from "../../utils/artistGenres";
 
 const inputHeight = (size) => (size === "small" ? 40 : 56);
 
 const fieldSx = {
   "& .MuiOutlinedInput-root": {
-    borderRadius: 2,
-    bgcolor: tickahub.navy,
-    "& fieldset": { borderColor: tickahub.borderSubtle },
-    "&:hover fieldset": { borderColor: tickahub.borderLight },
+    borderRadius: 2.5,
+    bgcolor: "rgba(255,255,255,0.07)",
+    "& fieldset": { borderColor: "rgba(255,255,255,0.18)" },
+    "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
+    "&:hover fieldset": { borderColor: "rgba(255,255,255,0.36)" },
+    "&.Mui-focused": {
+      bgcolor: "rgba(255,255,255,0.11)",
+      boxShadow: `0 0 0 3px ${tickahub.cyan}18`,
+    },
     "&.Mui-focused fieldset": { borderColor: tickahub.cyan },
   },
-  "& .MuiInputLabel-root": { color: tickahub.textMuted },
+  "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.68)" },
+  "& .MuiInputLabel-root.Mui-focused": { color: tickahub.cyan },
   "& .MuiOutlinedInput-input": { color: "#fff" },
 };
 
@@ -29,7 +35,7 @@ const addButtonSx = (size) => ({
   fontWeight: 800,
   fontSize: size === "small" ? "0.875rem" : "0.95rem",
   letterSpacing: 0.15,
-  background: cyanGradient,
+  background: `linear-gradient(135deg, #ffffff 0%, ${tickahub.cyan} 100%)`,
   color: tickahub.navy,
   border: "none",
   boxShadow: `0 8px 20px ${tickahub.cyan}33`,
@@ -39,7 +45,7 @@ const addButtonSx = (size) => ({
     "& svg": { fontSize: size === "small" ? 18 : 20 },
   },
   "&:hover": {
-    background: cyanGradient,
+    background: `linear-gradient(135deg, #ffffff 0%, ${tickahub.cyan} 100%)`,
     filter: "brightness(1.06)",
     boxShadow: `0 10px 24px ${tickahub.cyan}44`,
     transform: "translateY(-1px)",
@@ -138,7 +144,7 @@ export default function ArtistGenreField({
             display: "block",
             mt: 0.75,
             ml: 0.25,
-            color: tickahub.textMuted,
+            color: "rgba(255,255,255,0.52)",
             lineHeight: 1.45,
           }}
         >
@@ -172,7 +178,7 @@ export default function ArtistGenreField({
         <Box sx={{ mt: 1.5 }}>
           <Typography
             variant="caption"
-            sx={{ color: tickahub.textMuted, display: "block", mb: 0.75 }}
+            sx={{ color: "rgba(255,255,255,0.58)", display: "block", mb: 0.75 }}
           >
             Quick add (optional)
           </Typography>
@@ -185,8 +191,8 @@ export default function ArtistGenreField({
                 variant="outlined"
                 onClick={() => addGenre(suggestion)}
                 sx={{
-                  borderColor: tickahub.borderLight,
-                  color: tickahub.textMuted,
+                  borderColor: "rgba(255,255,255,0.24)",
+                  color: "rgba(255,255,255,0.68)",
                   fontWeight: 600,
                   cursor: "pointer",
                   "&:hover": {

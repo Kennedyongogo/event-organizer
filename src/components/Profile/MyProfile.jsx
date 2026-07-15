@@ -51,16 +51,23 @@ const swalDark = {
 
 const fieldSx = {
   "& .MuiOutlinedInput-root": {
-    borderRadius: 2,
-    bgcolor: tickahub.navy,
-    "& fieldset": { borderColor: tickahub.borderSubtle },
-    "&:hover fieldset": { borderColor: tickahub.borderLight },
+    borderRadius: 2.5,
+    bgcolor: "rgba(255,255,255,0.07)",
+    transition: "background-color 0.2s ease, box-shadow 0.2s ease",
+    "& fieldset": { borderColor: "rgba(255,255,255,0.18)" },
+    "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
+    "&:hover fieldset": { borderColor: "rgba(255,255,255,0.36)" },
+    "&.Mui-focused": {
+      bgcolor: "rgba(255,255,255,0.11)",
+      boxShadow: `0 0 0 3px ${tickahub.cyan}18`,
+    },
     "&.Mui-focused fieldset": { borderColor: tickahub.cyan },
   },
-  "& .MuiInputLabel-root": { color: tickahub.textMuted },
+  "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.68)" },
+  "& .MuiInputLabel-root.Mui-focused": { color: tickahub.cyan },
   "& .MuiOutlinedInput-input": { color: "#fff" },
   "& .Mui-disabled": { WebkitTextFillColor: `${tickahub.textMuted} !important` },
-  "& .MuiFormHelperText-root": { color: tickahub.textMuted, mt: 0.5 },
+  "& .MuiFormHelperText-root": { color: "rgba(255,255,255,0.52)", mt: 0.75 },
 };
 
 const pageShellSx = {
@@ -138,7 +145,7 @@ const formatDate = (value) => {
 
 const ViewField = ({ label, value, multiline = false }) => (
   <Box>
-    <Typography variant="caption" sx={{ color: tickahub.textMuted, fontFamily: "monospace", fontSize: "0.72rem" }}>
+    <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.58)", fontFamily: "monospace", fontSize: "0.72rem" }}>
       {label}
     </Typography>
     <Typography
@@ -166,7 +173,7 @@ const ViewLinkField = ({ label, value }) => {
 
   return (
     <Box>
-      <Typography variant="caption" sx={{ color: tickahub.textMuted, fontFamily: "monospace", fontSize: "0.72rem" }}>
+      <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.58)", fontFamily: "monospace", fontSize: "0.72rem" }}>
         {label}
       </Typography>
       {trimmed ? (
@@ -580,9 +587,10 @@ export default function MyProfile() {
     <Box
       sx={{
         p: { xs: 0, md: 1.5 },
-        borderRadius: 2,
-        border: { xs: "none", md: `1px solid ${tickahub.borderSubtle}` },
-        bgcolor: { xs: "transparent", md: `${tickahub.navy}66` },
+        borderRadius: 2.5,
+        border: { xs: "none", md: "1px solid rgba(255,255,255,0.14)" },
+        bgcolor: { xs: "transparent", md: "rgba(255,255,255,0.055)" },
+        backdropFilter: { md: "blur(12px)" },
         minWidth: { md: 220 },
         maxWidth: { md: 380 },
       }}
@@ -613,8 +621,8 @@ export default function MyProfile() {
               sx={{
                 width: { xs: 72, md: 64 },
                 height: { xs: 72, md: 64 },
-                border: `2px solid ${tickahub.borderSubtle}`,
-                bgcolor: tickahub.navy,
+                border: "2px solid rgba(255,255,255,0.28)",
+                bgcolor: "rgba(255,255,255,0.08)",
               }}
             >
               {getInitials(displayName)}
@@ -647,10 +655,10 @@ export default function MyProfile() {
               width: { xs: 72, md: 64 },
               height: { xs: 72, md: 64 },
               borderRadius: 2,
-              border: `1px dashed ${tickahub.cyan}66`,
+              border: "1px dashed rgba(255,255,255,0.4)",
               color: tickahub.cyan,
-              bgcolor: `${tickahub.cyan}08`,
-              "&:hover": { bgcolor: `${tickahub.cyan}16` },
+              bgcolor: "rgba(255,255,255,0.065)",
+              "&:hover": { bgcolor: "rgba(255,255,255,0.12)" },
             }}
           >
             <PhotoCameraIcon />
@@ -670,7 +678,8 @@ export default function MyProfile() {
         startIcon={<CancelIcon sx={{ display: { xs: "none", sm: "inline-flex" } }} />}
         sx={{
           color: tickahub.textMuted,
-          borderColor: tickahub.borderSubtle,
+          borderColor: "rgba(255,255,255,0.24)",
+          bgcolor: "rgba(255,255,255,0.045)",
           textTransform: "none",
           fontWeight: 600,
           minWidth: { xs: "auto", sm: 64 },
@@ -697,12 +706,13 @@ export default function MyProfile() {
           )
         }
         sx={{
-          background: goldGradient,
+          background: `linear-gradient(135deg, #ffffff 0%, ${tickahub.gold} 100%)`,
           color: tickahub.navy,
-          fontWeight: 700,
+          fontWeight: 800,
           textTransform: "none",
           px: { xs: 1.25, sm: 2.5 },
           minWidth: { xs: "auto", sm: 64 },
+          boxShadow: "0 8px 22px rgba(255,193,7,0.16)",
         }}
       >
         {saving ? (
@@ -728,10 +738,13 @@ export default function MyProfile() {
       aria-label="Edit profile"
       size="small"
       sx={{
-        color: tickahub.gold,
-        bgcolor: `${tickahub.gold}18`,
-        border: `1px solid ${tickahub.gold}44`,
-        "&:hover": { bgcolor: `${tickahub.gold}30` },
+        color: "#fff",
+        bgcolor: "rgba(255,255,255,0.1)",
+        border: "1px solid rgba(255,255,255,0.24)",
+        "&:hover": {
+          color: tickahub.gold,
+          bgcolor: "rgba(255,255,255,0.16)",
+        },
       }}
     >
       <EditIcon fontSize="small" />
@@ -769,13 +782,15 @@ export default function MyProfile() {
       <Paper
         elevation={0}
         sx={{
-          px: 2.5,
-          py: 1.75,
+          px: { xs: 2, md: 2.75 },
+          py: { xs: 2, md: 2.25 },
           flexShrink: 0,
           borderRadius: 3,
-          bgcolor: tickahub.surface,
-          border: `1px solid ${tickahub.borderSubtle}`,
-          background: `linear-gradient(135deg, ${tickahub.navyLight} 0%, ${tickahub.surface} 100%)`,
+          border: "1px solid rgba(255,255,255,0.18)",
+          background:
+            "linear-gradient(135deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.07) 52%, rgba(0,212,255,0.09) 100%)",
+          boxShadow: "0 18px 48px rgba(0,0,0,0.28)",
+          backdropFilter: "blur(18px)",
         }}
       >
         <Stack spacing={{ xs: 1.5, md: 1.5 }}>
@@ -816,11 +831,12 @@ export default function MyProfile() {
                   sx={{
                     width: { xs: 64, md: 72 },
                     height: { xs: 64, md: 72 },
-                    border: `3px solid ${tickahub.gold}`,
+                    border: "3px solid rgba(255,255,255,0.82)",
                     background: isArtist ? cyanGradient : goldGradient,
                     color: tickahub.navy,
                     fontWeight: 800,
                     fontSize: "1.25rem",
+                    boxShadow: "0 10px 28px rgba(0,0,0,0.28)",
                   }}
                 >
                   {getInitials(displayName)}
@@ -837,7 +853,7 @@ export default function MyProfile() {
                     color: tickahub.navy,
                     width: 28,
                     height: 28,
-                    border: `2px solid ${tickahub.surface}`,
+                    border: "2px solid rgba(255,255,255,0.9)",
                     "&:hover": { bgcolor: tickahub.cyanDark },
                   }}
                 >
@@ -853,11 +869,11 @@ export default function MyProfile() {
                 />
               </Box>
               <Box sx={{ minWidth: 0 }}>
-                <Typography sx={{ color: tickahub.textMuted, fontSize: "0.85rem" }}>
+                <Typography sx={{ color: "rgba(255,255,255,0.78)", fontSize: "0.85rem" }}>
                   {displayName}
                   {!isArtist && profile.organizer_status ? ` · ${profile.organizer_status}` : ""}
                 </Typography>
-                <Typography sx={{ color: tickahub.textMuted, fontSize: "0.75rem", mt: 0.25 }}>
+                <Typography sx={{ color: "rgba(255,255,255,0.54)", fontSize: "0.75rem", mt: 0.25 }}>
                   Last login: {formatDate(profile.lastLogin)}
                 </Typography>
                 <Stack direction="row" spacing={1} mt={1} flexWrap="wrap" useFlexGap>
@@ -872,9 +888,14 @@ export default function MyProfile() {
                         textTransform: "none",
                         fontWeight: 600,
                         fontSize: "0.75rem",
-                        color: tickahub.cyan,
-                        borderColor: `${tickahub.cyan}55`,
-                        "&:hover": { borderColor: tickahub.cyan, bgcolor: `${tickahub.cyan}10` },
+                        color: "#fff",
+                        borderColor: "rgba(255,255,255,0.3)",
+                        bgcolor: "rgba(255,255,255,0.055)",
+                        "&:hover": {
+                          color: tickahub.cyan,
+                          borderColor: tickahub.cyan,
+                          bgcolor: "rgba(255,255,255,0.1)",
+                        },
                       }}
                     >
                       {isArtist
@@ -906,13 +927,20 @@ export default function MyProfile() {
                     </Button>
                   )}
                 </Stack>
-                {artistGalleryPanel && (
-                  <Box sx={{ mt: 1.5, display: { xs: "block", md: "none" } }}>
-                    {artistGalleryPanel}
-                  </Box>
-                )}
               </Box>
             </Stack>
+
+            {artistGalleryPanel && (
+              <Box
+                sx={{
+                  mt: 0.5,
+                  width: "100%",
+                  display: { xs: "block", md: "none" },
+                }}
+              >
+                {artistGalleryPanel}
+              </Box>
+            )}
 
             {artistGalleryPanel && (
               <Box
@@ -931,12 +959,15 @@ export default function MyProfile() {
       </Paper>
 
       <SectionCard
-        sx={{ width: "100%", flex: "none" }}
-        headerBg={
-          isArtist
-            ? `linear-gradient(135deg, ${tickahub.gold}22, transparent)`
-            : `linear-gradient(135deg, ${tickahub.cyan}14, transparent)`
-        }
+        sx={{
+          width: "100%",
+          flex: "none",
+          bgcolor: "rgba(255,255,255,0.075)",
+          border: "1px solid rgba(255,255,255,0.16)",
+          boxShadow: "0 22px 56px rgba(0,0,0,0.3)",
+          backdropFilter: "blur(18px)",
+        }}
+        headerBg="linear-gradient(135deg, rgba(255,255,255,0.13), rgba(0,212,255,0.06))"
         icon={isArtist ? MusicIcon : BusinessIcon}
         iconColor={isArtist ? tickahub.gold : tickahub.cyan}
         title={isArtist ? "Artist profile" : "Organizer profile"}
@@ -1005,7 +1036,7 @@ export default function MyProfile() {
                 <MetaChips roleLabel={roleLabel} isActive={profile.isActive} />
               </Stack>
 
-              <Divider sx={{ borderColor: tickahub.borderSubtle }} />
+              <Divider sx={{ borderColor: "rgba(255,255,255,0.14)" }} />
               <SectionLabel accent={tickahub.gold}>About</SectionLabel>
               <Stack spacing={1.5}>
                 {editMode ? (
@@ -1025,7 +1056,7 @@ export default function MyProfile() {
                 )}
               </Stack>
 
-              <Divider sx={{ borderColor: tickahub.borderSubtle }} />
+              <Divider sx={{ borderColor: "rgba(255,255,255,0.14)" }} />
               <SectionLabel accent={tickahub.cyan}>Social media</SectionLabel>
               <Stack spacing={1.5}>
                 {editMode
@@ -1146,7 +1177,7 @@ export default function MyProfile() {
                 />
               </Stack>
 
-              <Divider sx={{ borderColor: tickahub.borderSubtle }} />
+              <Divider sx={{ borderColor: "rgba(255,255,255,0.14)" }} />
               <SectionLabel accent={tickahub.gold}>Business & payments</SectionLabel>
               <Stack spacing={1.5}>
                 {editMode ? (
