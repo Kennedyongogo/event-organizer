@@ -44,6 +44,7 @@ import EventMerchandiseFields, {
   parseMerchandiseFromApi,
 } from "./EventMerchandiseFields";
 import { buildAssetUrl } from "../../utils/assetUrl";
+import { isOrganizerEventLocked } from "./eventPermissions";
 
 const EventEdit = () => {
   const { id } = useParams();
@@ -102,6 +103,11 @@ const EventEdit = () => {
 
       if (response.ok && result.success) {
         const data = result.data;
+        if (isOrganizerEventLocked(data)) {
+          setEvent(data);
+          setError("Approved events are locked and can no longer be edited.");
+          return;
+        }
         setEvent(data);
         setEventForm({
           title: data.event_name || data.title || "",

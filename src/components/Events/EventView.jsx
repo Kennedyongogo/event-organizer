@@ -30,6 +30,7 @@ import {
 import VenueMapView from "./VenueMapView";
 import EventLineupView from "./EventLineupView";
 import { buildAssetUrl } from "../../utils/assetUrl";
+import { isOrganizerEventLocked } from "./eventPermissions";
 
 const EventView = () => {
   const { id } = useParams();
@@ -109,6 +110,7 @@ const EventView = () => {
   const imageSrc = buildImageUrl(event.image_url || event.image);
   const ticketTiers = Array.isArray(event.ticket_prices) ? event.ticket_prices : [];
   const merchandise = Array.isArray(event.merchandise) ? event.merchandise : [];
+  const eventLocked = isOrganizerEventLocked(event);
 
   return (
     <Box sx={pageShellSx}>
@@ -132,20 +134,22 @@ const EventView = () => {
                 "& .MuiChip-label": { px: 1, fontSize: "0.68rem" },
               }}
             />
-            <IconButton
-              size="small"
-              onClick={() => navigate(`/events/${id}/edit`)}
-              aria-label="Edit event"
-              sx={{
-                display: { xs: "inline-flex", md: "none" },
-                color: tickahub.gold,
-                bgcolor: alpha(tickahub.gold, 0.12),
-                borderRadius: 2,
-                "&:hover": { bgcolor: alpha(tickahub.gold, 0.22) },
-              }}
-            >
-              <EditIcon fontSize="small" />
-            </IconButton>
+            {!eventLocked && (
+              <IconButton
+                size="small"
+                onClick={() => navigate(`/events/${id}/edit`)}
+                aria-label="Edit event"
+                sx={{
+                  display: { xs: "inline-flex", md: "none" },
+                  color: tickahub.gold,
+                  bgcolor: alpha(tickahub.gold, 0.12),
+                  borderRadius: 2,
+                  "&:hover": { bgcolor: alpha(tickahub.gold, 0.22) },
+                }}
+              >
+                <EditIcon fontSize="small" />
+              </IconButton>
+            )}
             <IconButton
               size="small"
               onClick={() => navigate("/events")}
@@ -170,15 +174,17 @@ const EventView = () => {
             >
               Back
             </Button>
-            <Button
-              variant="contained"
-              size="small"
-              startIcon={<EditIcon />}
-              onClick={() => navigate(`/events/${id}/edit`)}
-              sx={{ ...primaryButtonSx, display: { xs: "none", md: "inline-flex" } }}
-            >
-              Edit
-            </Button>
+            {!eventLocked && (
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<EditIcon />}
+                onClick={() => navigate(`/events/${id}/edit`)}
+                sx={{ ...primaryButtonSx, display: { xs: "none", md: "inline-flex" } }}
+              >
+                Edit
+              </Button>
+            )}
           </Stack>
         }
       />

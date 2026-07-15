@@ -40,6 +40,7 @@ import {
   eventStatusColor,
   PageHeader,
 } from "../shared/tickahubPageStyles";
+import { isOrganizerEventLocked } from "./eventPermissions";
 
 const Events = () => {
   const navigate = useNavigate();
@@ -388,16 +389,20 @@ const Events = () => {
                             <ViewIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
-                        <Tooltip title="Edit">
-                          <IconButton size="small" onClick={() => navigate(`/events/${event.id}/edit`)} sx={actionBtnSx(tickahub.gold)}>
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Delete">
-                          <IconButton size="small" onClick={() => handleDeleteEvent(event)} sx={actionBtnSx("#ff6b6b")}>
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
+                        {!isOrganizerEventLocked(event) && (
+                          <>
+                            <Tooltip title="Edit">
+                              <IconButton size="small" onClick={() => navigate(`/events/${event.id}/edit`)} sx={actionBtnSx(tickahub.gold)}>
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Delete">
+                              <IconButton size="small" onClick={() => handleDeleteEvent(event)} sx={actionBtnSx("#ff6b6b")}>
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </>
+                        )}
                       </Stack>
                     </TableCell>
                   </TableRow>

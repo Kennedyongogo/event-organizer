@@ -617,7 +617,28 @@ export default function LoginPage() {
           </Box>
         </Box>
 
-        <Box className="brand-panel" sx={{ background: backgroundGradient }}>
+        <Box
+          className="brand-panel"
+          sx={
+            accountType === "artist"
+              ? {
+                  backgroundImage:
+                    'linear-gradient(180deg, rgba(5,10,20,0.34) 0%, rgba(5,10,20,0.72) 100%), url("/images/chandrak-music-9963662_1920.jpg")',
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                  backgroundRepeat: "no-repeat",
+                  boxShadow: "inset 0 0 80px rgba(0,0,0,0.38)",
+                }
+              : {
+                  backgroundImage:
+                    'linear-gradient(180deg, rgba(20,12,3,0.28) 0%, rgba(8,10,18,0.72) 100%), url("/images/pexels-audience-1853662_1920.jpg")',
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                  backgroundRepeat: "no-repeat",
+                  boxShadow: "inset 0 0 80px rgba(0,0,0,0.34)",
+                }
+          }
+        >
           <Box
             component="img"
             src="/tickahub.png"
